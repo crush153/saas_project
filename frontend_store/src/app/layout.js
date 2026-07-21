@@ -1,26 +1,25 @@
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+'use client';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata = {
-  title: "SaaS Store",
-  description: "Hệ thống bán hàng single-store gọn nhẹ",
-};
+import Header from '@/components/Header';
+import CartModal from '@/components/CartModal'; // Hoặc Modal Giỏ hàng tách riêng nếu có
+import AuthModal from '@/components/AuthModal';
+import Toast from '@/components/Toast';
+import './globals.css';
 
 export default function RootLayout({ children }) {
   return (
     <html lang="vi">
-      <body className="antialiased bg-gray-50">
-        {children} {/* Chỉ render children, không để Header ở đây nữa */}
+      <body className="bg-gray-50 min-h-screen text-gray-900">
+        {/* Header chung cho toàn bộ trang */}
+        <Header />
+
+        {/* Nội dung trang (Trang chủ, Chi tiết sản phẩm, Chính sách, v.v.) */}
+        {children}
+
+        {/* Các Modal dùng chung toàn hệ thống */}
+        <CartModal />
+        <AuthModal />
+        <Toast />
       </body>
     </html>
   );
