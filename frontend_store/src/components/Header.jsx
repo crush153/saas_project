@@ -47,8 +47,13 @@ export default function Header({ categories = [] }) {
   };
 
   const handleCategoryChange = (e) => {
-    setSelectedCategory(e.target.value);
-    navigateToHomeIfNeeded();
+    const value = e.target.value;
+    setSelectedCategory(value);
+    if (value) {
+      router.push(`/categories/${value}`);
+    } else {
+      router.push('/');
+    }
   };
 
   // Chỉ commit search khi Enter/submit form.
@@ -58,8 +63,10 @@ export default function Header({ categories = [] }) {
     e.preventDefault();
     const query = draftSearch.trim();
 
-    if (pathname === '/') {
-      // Đã ở trang chủ: page.js tự fetch và tự xử lý not-found
+    // Nếu đang ở trang danh mục, search trong danh mục đó
+    const isCategoryPage = pathname.startsWith('/categories/');
+
+    if (pathname === '/' || isCategoryPage) {
       setSearchQuery(query);
       return;
     }

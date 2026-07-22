@@ -7,4 +7,15 @@ const CATEGORIES = [
   { slug: 'sach-truyen', name: 'Sách & Truyện' },
 ];
 
+// Helper: lấy category name từ slug
+export function getCategoryName(slug) {
+  const cat = CATEGORIES.find(c => c.slug === slug);
+  return cat ? cat.name : '';
+}
+
+// Helper: lấy các category không bao gồm "Tất cả danh mục"
+export function getCategoryList() {
+  return CATEGORIES.filter(c => c.slug !== '');
+}
+
 export default CATEGORIES;

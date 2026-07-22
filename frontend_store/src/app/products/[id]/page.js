@@ -14,6 +14,7 @@ export default function ProductDetail({ params }) {
   const productId = resolvedParams.id;
 
   const [product, setProduct] = useState(null);
+  const [categorySlug, setCategorySlug] = useState('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('specs'); // 'specs' | 'reviews'
   const [quantity, setQuantity] = useState(1);
@@ -30,6 +31,7 @@ export default function ProductDetail({ params }) {
       })
       .then((data) => {
         setProduct(data);
+        setCategorySlug(data.category || '');
         setLoading(false);
       })
       .catch(() => {
@@ -78,7 +80,24 @@ export default function ProductDetail({ params }) {
       <main className="max-w-6xl mx-auto p-6">
         {/* Breadcrumb đường dẫn */}
         <nav className="text-sm text-gray-500 mb-6 flex items-center gap-2">
-          <Link href="/" onClick={() => { setSelectedCategory(''); setSearchQuery(''); }} className="hover:text-blue-600">Trang chủ</Link>
+          <button 
+            onClick={() => { setSelectedCategory(''); setSearchQuery(''); router.push('/'); }} 
+            className="hover:text-blue-600 bg-transparent border-none p-0 text-sm cursor-pointer"
+          >
+            Trang chủ
+          </button>
+          {categorySlug && (
+            <>
+              <span>/</span>
+              <Link 
+                href={`/categories/${categorySlug}`}
+                onClick={() => setSelectedCategory(categorySlug)}
+                className="hover:text-blue-600"
+              >
+                {product.category_display || categorySlug}
+              </Link>
+            </>
+          )}
           <span>/</span>
           <span className="text-gray-800 font-medium">{product.name}</span>
         </nav>
