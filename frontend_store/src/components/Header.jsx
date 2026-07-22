@@ -38,10 +38,11 @@ export default function Header({ categories = [] }) {
     }
   };
 
-  // Bấm Logo về Trang chủ: luôn xóa ô tìm kiếm
+  // Bấm Logo về Trang chủ: luôn xóa ô tìm kiếm và reset danh mục
   const handleGoHome = () => {
     setSearchQuery('');
     setDraftSearch('');
+    setSelectedCategory('');
     navigateToHomeIfNeeded();
   };
 
@@ -109,7 +110,6 @@ export default function Header({ categories = [] }) {
             onChange={handleCategoryChange}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-blue-500 text-gray-700"
           >
-            <option value="">Tất cả danh mục</option>
             {categories.map((cat) => (
               <option key={cat.slug || cat.id || cat} value={cat.slug || cat}>
                 {cat.name || cat}

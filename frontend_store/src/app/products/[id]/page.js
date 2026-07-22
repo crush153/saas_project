@@ -8,7 +8,7 @@ import { useAppStore } from '@/store/useAppStore';
 
 export default function ProductDetail({ params }) {
   const router = useRouter();
-  const { addToCart, showToast } = useAppStore();
+  const { addToCart, showToast, setSelectedCategory, setSearchQuery } = useAppStore();
   // Giải mã params theo chuẩn Next.js App Router
   const resolvedParams = use(params);
   const productId = resolvedParams.id;
@@ -78,7 +78,7 @@ export default function ProductDetail({ params }) {
       <main className="max-w-6xl mx-auto p-6">
         {/* Breadcrumb đường dẫn */}
         <nav className="text-sm text-gray-500 mb-6 flex items-center gap-2">
-          <Link href="/" className="hover:text-blue-600">Trang chủ</Link>
+          <Link href="/" onClick={() => { setSelectedCategory(''); setSearchQuery(''); }} className="hover:text-blue-600">Trang chủ</Link>
           <span>/</span>
           <span className="text-gray-800 font-medium">{product.name}</span>
         </nav>
