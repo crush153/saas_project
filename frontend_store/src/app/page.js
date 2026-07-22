@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { API_URL } from '@/config/api';
 import { useAppStore } from '@/store/useAppStore';
 import { getCategoryList } from '@/config/categories';
@@ -17,7 +17,6 @@ const categoryIcons = {
 
 export default function Home() {
   const router = useRouter();
-  const pathname = usePathname();
   // Đọc/ghi trực tiếp vào Zustand store — đây là nơi Header.jsx và CartModal.jsx đang dùng chung
   const { searchQuery, selectedCategory, addToCart: addToStoreCart, showToast, setSelectedCategory, setSearchQuery } = useAppStore();
 
@@ -29,45 +28,72 @@ export default function Home() {
 
   // Tự động gọi lại API mỗi khi searchQuery hoặc selectedCategory thay đổi (do Header cập nhật)
   const prevSearchRef = useRef(searchQuery);
-  const prevPathRef = useRef(pathname);
 
+  // Home luôn hiển thị toàn bộ sản phẩm — reset category nếu còn sót lại
+  // (vd: vào lại bằng nút Back của trình duyệt khiến component remount, mất mọi ref cũ)
+  const initialCheckRef = useRef(false);
+
+  // 1. Tách Effect xử lý sự kiện bfcache (pageshow) ra ngoài
   useEffect(() => {
+    const handlePageShow = (e) => {
+      if (e.persisted && selectedCategory) {
+        setSelectedCategory('');
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, [selectedCategory, setSelectedCategory]);
+
+
+  // 2. Effect chính xử lý Fetch dữ liệu
+  useEffect(() => {
+    // Reset category ở lần chạy đầu tiên nếu có
+    if (!initialCheckRef.current) {
+      initialCheckRef.current = true;
+      if (selectedCategory) {
+        setSelectedCategory('');
+        return; // Bỏ qua fetch lần này, effect sẽ tự trigger lại khi selectedCategory đổi thành ''
+      }
+    }
+
     const isSearchTrigger = searchQuery !== prevSearchRef.current;
     prevSearchRef.current = searchQuery;
 
-    // Phát hiện quay lại trang chủ bằng nút Back: reset category trước khi fetch
-    const cameFromCategoryPage = prevPathRef.current !== pathname && pathname === '/' && selectedCategory;
-    prevPathRef.current = pathname;
-
-    if (cameFromCategoryPage) {
-      setSelectedCategory('');
-      setSearchQuery('');
-      return; // Effect sẽ chạy lại sau khi category được reset
-    }
-
-    // Khi đổi danh mục (hoặc lần tải đầu tiên) mới hiện "Đang tải..."
-    // Khi chỉ là 1 lần search, giữ nguyên giao diện cho tới khi có kết quả
+    // Khi đổi danh mục (hoặc lần tải đầu) mới hiện Loading toàn trang
     if (!isSearchTrigger) setLoading(true);
 
-    let url = `${API_URL}products/?`;
-    const params = [];
-    if (selectedCategory) params.push(`category=${encodeURIComponent(selectedCategory)}`);
-    if (searchQuery) params.push(`search=${encodeURIComponent(searchQuery)}`);
-    url += params.join('&');
+    // Tạo AbortController để huỷ request cũ nếu dependencies thay đổi liên tục
+    const controller = new AbortController();
+    
+    const params = new URLSearchParams();
+    if (selectedCategory) params.append('category', selectedCategory);
+    if (searchQuery) params.append('search', searchQuery);
 
-    fetch(url)
+    const url = `${API_URL}products/?${params.toString()}`;
+
+    fetch(url, { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
         if (data.length === 0 && searchQuery) {
-          // Không tìm thấy: giữ nguyên danh sách sản phẩm đang hiển thị, chỉ báo popup nhỏ
           showToast('Không tìm thấy sản phẩm phù hợp!');
         } else {
           setProducts(data);
         }
-        setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, [searchQuery, selectedCategory, pathname]);
+      .catch((err) => {
+        // Bỏ qua lỗi nếu request bị huỷ do unmount/chuyển effect
+        if (err.name !== 'AbortError') {
+          console.error('Fetch error:', err);
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+
+    // Cleanup function: huỷ fetch dở dang khi dependency thay đổi
+    return () => controller.abort();
+  }, [searchQuery, selectedCategory]);
 
   // Thêm vào giỏ hàng thật sự (store dùng chung với Header/CartModal) + hiệu ứng nút bấm/toast
   const addToCart = (product) => {
