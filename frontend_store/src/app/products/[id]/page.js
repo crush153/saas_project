@@ -208,23 +208,15 @@ export default function ProductDetail({ params }) {
 
           {/* Nội dung Tab */}
           <div className="p-6">
-            {activeTab === 'specs' ? (
+              {activeTab === 'specs' ? (
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-gray-800">Thông tin kỹ thuật</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-500">Thương hiệu</span>
-                    <span className="font-medium text-gray-800">{product.brand || 'Đang cập nhật'}</span>
+                {product.specifications ? (
+                  <div className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
+                    {product.specifications}
                   </div>
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-500">Xuất xứ</span>
-                    <span className="font-medium text-gray-800">{product.origin || 'Chính hãng'}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-500">Bảo hành</span>
-                    <span className="font-medium text-gray-800">12 Tháng</span>
-                  </div>
-                </div>
+                ) : (
+                  <div className="text-sm text-gray-500">Chưa có thông tin kỹ thuật cho sản phẩm này.</div>
+                )}
               </div>
             ) : (
               <div className="space-y-4">

@@ -1,7 +1,8 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from .models import Product, Order
-from .serializers import ProductSerializer, OrderSerializer
+from rest_framework.decorators import api_view
+from .models import Product, Order, Footer
+from .serializers import ProductSerializer, OrderSerializer, FooterSerializer
 from decimal import Decimal
 from django.db.models import Q
 
@@ -24,6 +25,15 @@ class ProductViewSet(viewsets.ModelViewSet):
             )
 
         return queryset
+
+@api_view(['GET'])
+def get_footer(request):
+    """API trả về thông tin footer (chỉ 1 bản ghi duy nhất)"""
+    footer = Footer.objects.filter(is_active=True).first()
+    if not footer:
+        return Response({}, status=status.HTTP_200_OK)
+    serializer = FooterSerializer(footer)
+    return Response(serializer.data)
 
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all().order_by('-created_at')

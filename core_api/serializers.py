@@ -1,15 +1,21 @@
 from rest_framework import serializers
-from .models import Product, Order
+from .models import Product, Order, Footer
 
 class ProductSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(source='get_category_display', read_only=True)
 
     class Meta:
         model = Product
-        fields = ['id', 'category', 'category_display', 'name', 'price', 'image', 'description', 'created_at']
+        fields = ['id', 'category', 'category_display', 'name', 'price', 'image', 'description', 'specifications', 'created_at']
         
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'customer_name', 'customer_phone', 'shipping_address', 'items', 'total_amount', 'status', 'created_at']
         read_only_fields = ['status', 'total_amount'] # Khách hàng đặt đơn không tự sửa đổi trạng thái và tổng tiền
+
+class FooterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Footer
+        fields = '__all__'
+        read_only_fields = ['is_active'] # Admin tự quản lý trạng thái
