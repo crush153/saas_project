@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { API_URL } from '@/config/api';
+import SuccessAnimation from './SuccessAnimation';
 
 export default function CartModal() {
   const { 
@@ -16,13 +17,16 @@ export default function CartModal() {
   } = useAppStore();
 
   const [customer, setCustomer] = useState({ name: '', phone: '', address: '' });
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   if (!isCartOpen) return null;
 
   const handleOrder = async (e) => {
     e.preventDefault();
     if (cart.length === 0) {
-      alert('Giỏ hàng của bạn đang trống!');
+      setErrorMessage('Giỏ hàng của bạn đang trống!');
+      setTimeout(() => setErrorMessage(''), 3000);
       return;
     }
 
@@ -41,16 +45,22 @@ export default function CartModal() {
       });
 
       if (response.ok) {
-        alert('Đặt hàng thành công! Đơn hàng đã được lưu và tính tiền tự động.');
-        clearCart();
-        setCustomer({ name: '', phone: '', address: '' });
-        setIsCartOpen(false);
+        setShowSuccess(true);
       } else {
-        alert('Có lỗi xảy ra khi gửi đơn hàng.');
+        setErrorMessage('Có lỗi xảy ra khi gửi đơn hàng.');
+        setTimeout(() => setErrorMessage(''), 3000);
       }
     } catch (error) {
-      alert('Không thể kết nối đến máy chủ.');
+      setErrorMessage('Không thể kết nối đến máy chủ.');
+      setTimeout(() => setErrorMessage(''), 3000);
     }
+  };
+
+  const handleCloseSuccess = () => {
+    setShowSuccess(false);
+    clearCart();
+    setCustomer({ name: '', phone: '', address: '' });
+    setIsCartOpen(false);
   };
 
   const totalAmount = cart.reduce(
@@ -188,6 +198,21 @@ export default function CartModal() {
         )}
 
       </div>
+
+      {/* Error message */}
+      {errorMessage && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-red-500 text-white px-6 py-3 rounded-xl shadow-lg text-sm font-medium animate-in fade-in slide-in-from-top-2">
+          {errorMessage}
+        </div>
+      )}
+
+      {/* Success animation overlay */}
+      {showSuccess && (
+        <SuccessAnimation 
+          message="Đặt hàng thành công! Cảm ơn bạn đã mua sắm!"
+          onClose={handleCloseSuccess}
+        />
+      )}
     </div>
   );
 }

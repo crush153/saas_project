@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { API_URL } from '@/config/api';
 import { useAppStore } from '@/store/useAppStore';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 export default function ProductDetail({ params }) {
   const router = useRouter();
@@ -121,9 +122,13 @@ export default function ProductDetail({ params }) {
               <p className="text-3xl font-extrabold text-blue-600 mb-4">
                 {parseFloat(product.price).toLocaleString()}đ
               </p>
-              <p className="text-gray-600 text-sm leading-relaxed mb-6">
-                {product.description || 'Chưa có mô tả ngắn cho sản phẩm này.'}
-              </p>
+              <div className="text-gray-600 text-sm leading-relaxed mb-6">
+                {product.description ? (
+                  <MarkdownRenderer content={product.description} />
+                ) : (
+                  <p>Chưa có mô tả ngắn cho sản phẩm này.</p>
+                )}
+              </div>
             </div>
 
             <div className="border-t border-gray-100 pt-6 space-y-4">
@@ -210,10 +215,21 @@ export default function ProductDetail({ params }) {
           <div className="p-6">
               {activeTab === 'specs' ? (
               <div className="space-y-4">
-                {product.specifications ? (
-                  <div className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
-                    {product.specifications}
-                  </div>
+                {product.specifications && Array.isArray(product.specifications) && product.specifications.length > 0 ? (
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {product.specifications.map((spec, index) => (
+                        <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                          <td className="px-4 py-3 font-semibold text-gray-700 w-1/3 border-b border-gray-100">
+                            {spec.key}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 border-b border-gray-100">
+                            {spec.value}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 ) : (
                   <div className="text-sm text-gray-500">Chưa có thông tin kỹ thuật cho sản phẩm này.</div>
                 )}

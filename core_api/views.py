@@ -42,13 +42,20 @@ class OrderViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         items = self.request.data.get('items', []) 
         total = Decimal('0.00')
+        enriched_items = []
 
         for item in items:
             try:
                 product = Product.objects.get(id=item.get('product_id'))
                 quantity = int(item.get('quantity', 1))
                 total += product.price * quantity
+                # Lưu thêm tên sản phẩm vào item để admin dễ đọc
+                enriched_items.append({
+                    'product_id': item.get('product_id'),
+                    'product_name': product.name,
+                    'quantity': quantity,
+                })
             except Product.DoesNotExist:
                 continue
         
-        serializer.save(total_amount=total, items=items)
+        serializer.save(total_amount=total, items=enriched_items)

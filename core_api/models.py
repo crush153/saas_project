@@ -18,9 +18,29 @@ class Product(models.Model):
     name = models.CharField(max_length=255, verbose_name="Tên sản phẩm")
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Giá bán")
     image = models.ImageField(upload_to="products/", blank=True, null=True, verbose_name="Ảnh sản phẩm")
-    description = models.TextField(blank=True, verbose_name="Mô tả sản phẩm")
-    specifications = models.TextField(blank=True, verbose_name="Thông số kỹ thuật")
+    description = models.TextField(blank=True, verbose_name="Mô tả sản phẩm (hỗ trợ Markdown)")
+    specifications = models.JSONField(default=list, blank=True, verbose_name="Thông số kỹ thuật (JSON key-value)")
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        # Tự động chuyển đổi text sang JSON nếu specifications là string
+        if isinstance(self.specifications, str):
+            text = self.specifications.strip()
+            if text:
+                new_specs = []
+                for line in text.split('\n'):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    if ':' in line:
+                        key, value = line.split(':', 1)
+                        new_specs.append({'key': key.strip(), 'value': value.strip()})
+                    else:
+                        new_specs.append({'key': line, 'value': ''})
+                self.specifications = new_specs
+            else:
+                self.specifications = []
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"[{self.get_category_display()}] {self.name} - {self.price}đ"
