@@ -19,7 +19,12 @@ export default function Header({ categories = [] }) {
     selectedCategory, 
     setSelectedCategory,
     showToast,
+    user,
+    logout,
   } = useAppStore();
+
+  // Dropdown menu người dùng
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   // Ô input gõ nháp — chỉ đẩy vào store (và trigger fetch) khi bấm Enter
   const [draftSearch, setDraftSearch] = useState(searchQuery);
@@ -163,13 +168,64 @@ export default function Header({ categories = [] }) {
             )}
           </button>
 
-          {/* Nút Đăng nhập (Mở AuthModal) */}
-          <button 
-            onClick={() => setIsAuthModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition cursor-pointer"
-          >
-            Đăng nhập
-          </button>
+          {/* Nút Đăng nhập / Thông tin user */}
+          {user ? (
+            <div className="relative">
+              <button
+                onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold px-3 py-2 rounded-lg transition cursor-pointer"
+              >
+                <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                  {user.username?.[0]?.toUpperCase() || 'U'}
+                </span>
+                <span className="max-w-[100px] truncate">{user.username}</span>
+                <span className="text-xs text-gray-500">▾</span>
+              </button>
+
+              {isUserMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsUserMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{user.username}</p>
+                      {user.email && (
+                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                      )}
+                    </div>
+                    {user.is_staff && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                      >
+                        ⚙️ Quản trị website
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => {
+                        logout();
+                        setIsUserMenuOpen(false);
+                        showToast('Đã đăng xuất.');
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition cursor-pointer"
+                    >
+                      Đăng xuất
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <button 
+              onClick={() => setIsAuthModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition cursor-pointer"
+            >
+              Đăng nhập
+            </button>
+          )}
 
         </div>
       </div>

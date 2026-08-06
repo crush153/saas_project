@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django import forms
 from django.utils.safestring import mark_safe
-from .models import Product, Order, Footer
+from django.utils import timezone
+from .models import Product, Order, Footer, UserProfile, Review, PageVisit
 
 class ProductAdminForm(forms.ModelForm):
     """Custom form cho Product: cho phép nhập specifications dạng text, tự động parse sang JSON"""
@@ -67,11 +68,13 @@ class ProductAdminForm(forms.ModelForm):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
-    list_display = ('name', 'price', 'created_at')
+    list_display = ('name', 'price', 'stock', 'is_active', 'created_at')
+    list_filter = ('is_active', 'category')
+    list_editable = ('is_active', 'stock')
     search_fields = ('name',)
     fieldsets = (
         ('Thông tin cơ bản', {
-            'fields': ('category', 'name', 'price', 'image')
+            'fields': ('category', 'name', 'price', 'image', 'is_active', 'stock')
         }),
         ('Mô tả (hỗ trợ Markdown)', {
             'fields': ('description',),
@@ -84,9 +87,9 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'customer_name', 'total_amount', 'status', 'created_at')
+    list_display = ('id', 'user', 'customer_name', 'customer_phone', 'total_amount', 'status', 'created_at')
     list_filter = ('status',)
-    search_fields = ('customer_name', 'customer_phone')
+    search_fields = ('customer_name', 'customer_phone', 'user__username')
 
 @admin.register(Footer)
 class FooterAdmin(admin.ModelAdmin):
@@ -115,3 +118,34 @@ class FooterAdmin(admin.ModelAdmin):
             'fields': ('is_active',)
         }),
     )
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'phone', 'is_approved', 'approved_at', 'created_at')
+    list_filter = ('is_approved',)
+    search_fields = ('user__username', 'user__email', 'phone')
+    list_editable = ('is_approved',)
+    readonly_fields = ('created_at',)
+    actions = ['approve_selected']
+
+    @admin.action(description="Duyệt tài khoản đã chọn")
+    def approve_selected(self, request, queryset):
+        updated = queryset.filter(is_approved=False).update(
+            is_approved=True,
+            approved_at=timezone.now(),
+        )
+        self.message_user(request, f"Đã duyệt {updated} tài khoản.")
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('product', 'user', 'rating', 'created_at')
+    list_filter = ('rating',)
+    search_fields = ('user__username', 'product__name', 'comment')
+    readonly_fields = ('created_at',)
+
+@admin.register(PageVisit)
+class PageVisitAdmin(admin.ModelAdmin):
+    list_display = ('page_path', 'user', 'product', 'viewed_at')
+    list_filter = ('viewed_at',)
+    search_fields = ('page_path', 'user__username')
+    readonly_fields = ('viewed_at',)

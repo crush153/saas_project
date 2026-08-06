@@ -1,4 +1,7 @@
 from django.db import models
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class Product(models.Model):
     CATEGORY_CHOICES = [
@@ -20,6 +23,8 @@ class Product(models.Model):
     image = models.ImageField(upload_to="products/", blank=True, null=True, verbose_name="Ảnh sản phẩm")
     description = models.TextField(blank=True, verbose_name="Mô tả sản phẩm (hỗ trợ Markdown)")
     specifications = models.JSONField(default=list, blank=True, verbose_name="Thông số kỹ thuật (JSON key-value)")
+    is_active = models.BooleanField(default=True, verbose_name="Hiển thị trên website")
+    stock = models.PositiveIntegerField(default=0, verbose_name="Số lượng tồn kho")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
@@ -105,6 +110,14 @@ class Order(models.Model):
         ('COMPLETED', 'Đã hoàn thành'),
         ('CANCELLED', 'Đã hủy'),
     ]
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='orders',
+        null=True,
+        blank=True,
+        verbose_name="Người dùng"
+    )
     customer_name = models.CharField(max_length=255, verbose_name="Tên khách hàng")
     customer_phone = models.CharField(max_length=20, verbose_name="Số điện thoại")
     shipping_address = models.TextField(verbose_name="Địa chỉ giao hàng")
@@ -115,3 +128,75 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Đơn hàng #{self.id} - {self.customer_name}"
+
+
+class UserProfile(models.Model):
+    """Hồ sơ người dùng - quản lý trạng thái duyệt tài khoản"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', verbose_name="Người dùng")
+    phone = models.CharField(max_length=10, blank=True, verbose_name="Số điện thoại")
+    is_approved = models.BooleanField(default=False, verbose_name="Đã duyệt")
+    approved_at = models.DateTimeField(null=True, blank=True, verbose_name="Thời gian duyệt")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày đăng ký")
+
+    class Meta:
+        verbose_name = "Hồ sơ người dùng"
+        verbose_name_plural = "Hồ sơ người dùng"
+
+    def __str__(self):
+        status = "Đã duyệt" if self.is_approved else "Chờ duyệt"
+        return f"{self.user.username} - {status}"
+
+
+class Review(models.Model):
+    """Đánh giá sản phẩm của người dùng"""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews', verbose_name="Sản phẩm")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews', verbose_name="Người dùng")
+    rating = models.PositiveSmallIntegerField(verbose_name="Điểm đánh giá (1-5)")
+    comment = models.TextField(blank=True, verbose_name="Nội dung bình luận")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày đánh giá")
+
+    class Meta:
+        verbose_name = "Đánh giá"
+        verbose_name_plural = "Đánh giá"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.product.name} - {self.rating}★"
+
+
+class PageVisit(models.Model):
+    """Theo dõi lượt truy cập website"""
+    page_path = models.CharField(max_length=500, verbose_name="Đường dẫn trang")
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name='visits',
+        null=True,
+        blank=True,
+        verbose_name="Người dùng"
+    )
+    visitor_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name="IP khách truy cập")
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        related_name='visits',
+        null=True,
+        blank=True,
+        verbose_name="Sản phẩm"
+    )
+    viewed_at = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian truy cập")
+
+    class Meta:
+        verbose_name = "Lượt truy cập"
+        verbose_name_plural = "Lượt truy cập"
+        ordering = ['-viewed_at']
+
+    def __str__(self):
+        return f"{self.page_path} - {self.viewed_at}"
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """Tự động tạo UserProfile khi User được tạo mới"""
+    if created:
+        UserProfile.objects.get_or_create(user=instance)

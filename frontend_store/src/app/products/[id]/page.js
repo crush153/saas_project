@@ -9,7 +9,7 @@ import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 export default function ProductDetail({ params }) {
   const router = useRouter();
-  const { addToCart, showToast, setSelectedCategory, setSearchQuery } = useAppStore();
+  const { addToCart, showToast, setSelectedCategory, setSearchQuery, user, accessToken, setIsAuthModalOpen, refreshAccessToken, logout } = useAppStore();
   // Giải mã params theo chuẩn Next.js App Router
   const resolvedParams = use(params);
   const productId = resolvedParams.id;
@@ -22,6 +22,15 @@ export default function ProductDetail({ params }) {
 
   // State quản lý hiệu ứng nút bấm
   const [isAdded, setIsAdded] = useState(false);
+
+  // State quản lý đánh giá (reviews)
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [reviewError, setReviewError] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   useEffect(() => {
     // Tải thông tin chi tiết sản phẩm
@@ -42,6 +51,23 @@ export default function ProductDetail({ params }) {
       });
   }, [productId]);
 
+  // Tải danh sách đánh giá khi chuyển sang tab reviews
+  useEffect(() => {
+    if (activeTab === 'reviews' && productId) {
+      setReviewsLoading(true);
+      fetch(`${API_URL}reviews/?product=${productId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setReviews(Array.isArray(data) ? data : []);
+          setReviewsLoading(false);
+        })
+        .catch(() => {
+          setReviews([]);
+          setReviewsLoading(false);
+        });
+    }
+  }, [activeTab, productId]);
+
   const handleAddToCart = () => {
     addToCart(product, quantity);
 
@@ -57,6 +83,104 @@ export default function ProductDetail({ params }) {
   const handleBuyNow = () => {
     handleAddToCart();
     // Chuyển hướng ngay tới trang thanh toán hoặc mở Modal giỏ hàng
+  };
+
+  // Gửi đánh giá
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    setReviewError('');
+
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    if (rating < 1 || rating > 5) {
+      setReviewError('Vui lòng chọn số sao đánh giá (1-5).');
+      return;
+    }
+
+    if (comment.length > 3000) {
+      setReviewError('Nội dung bình luận tối đa 3000 ký tự.');
+      return;
+    }
+
+    // Hàm gửi review (tái sử dụng khi refresh token)
+    const postReview = async (token) => {
+      const res = await fetch(`${API_URL}reviews/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          product: productId,
+          rating,
+          comment,
+        }),
+      });
+      return res;
+    };
+
+    setReviewSubmitting(true);
+    try {
+      let res = await postReview(accessToken);
+
+      // Token hết hạn → refresh và gửi lại
+      if (res.status === 401) {
+        const refreshResult = await refreshAccessToken();
+        if (refreshResult.ok) {
+          res = await postReview(refreshResult.accessToken);
+        } else {
+          // Refresh thất bại → đăng xuất, yêu cầu đăng nhập lại
+          logout();
+          setIsAuthModalOpen(true);
+          setReviewSubmitting(false);
+          setReviewError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+          return;
+        }
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data.rating?.[0] || data.comment?.[0] || data.detail || 'Gửi đánh giá thất bại.';
+        setReviewError(msg);
+        setReviewSubmitting(false);
+        return;
+      }
+      // Thêm review mới vào đầu danh sách
+      setReviews((prev) => [data, ...prev]);
+      setRating(0);
+      setComment('');
+      setReviewSubmitting(false);
+      showToast('Đã gửi đánh giá thành công!');
+    } catch {
+      setReviewSubmitting(false);
+      setReviewError('Không thể kết nối đến máy chủ.');
+    }
+  };
+
+  // Format ngày tháng
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  // Render sao
+  const renderStars = (value) => {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <span
+            key={star}
+            className={`text-lg leading-none ${star <= value ? 'text-yellow-400' : 'text-gray-300'}`}
+          >
+            ★
+          </span>
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -235,9 +359,110 @@ export default function ProductDetail({ params }) {
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <h3 className="text-lg font-bold text-gray-800">Đánh giá sản phẩm</h3>
-                <p className="text-gray-500 text-sm">Chưa có đánh giá nào cho sản phẩm này.</p>
+
+                {/* Khung gửi đánh giá — chỉ user đã đăng nhập */}
+                {user ? (
+                  <form onSubmit={handleSubmitReview} className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Đánh giá của bạn</label>
+                      {/* Chọn sao */}
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setRating(star)}
+                            onMouseEnter={() => setHoverRating(star)}
+                            onMouseLeave={() => setHoverRating(0)}
+                            className="text-3xl leading-none transition cursor-pointer"
+                            aria-label={`${star} sao`}
+                          >
+                            <span className={(star <= (hoverRating || rating)) ? 'text-yellow-400' : 'text-gray-300'}>
+                              ★
+                            </span>
+                          </button>
+                        ))}
+                        <span className="ml-2 text-sm text-gray-500">
+                          {rating > 0 ? `${rating}/5 sao` : 'Chọn số sao'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung bình luận</label>
+                      <textarea
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        maxLength={3000}
+                        rows={4}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                        placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."
+                      />
+                      <p className="text-xs text-gray-400 mt-1 text-right">{comment.length}/3000 ký tự</p>
+                    </div>
+
+                    {reviewError && (
+                      <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                        {reviewError}
+                      </p>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={reviewSubmitting}
+                      className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition cursor-pointer"
+                    >
+                      {reviewSubmitting ? 'Đang gửi...' : 'Gửi đánh giá'}
+                    </button>
+                  </form>
+                ) : (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                    <p className="text-sm text-gray-600 mb-3">Bạn cần đăng nhập để gửi đánh giá.</p>
+                    <button
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition cursor-pointer"
+                    >
+                      Đăng nhập
+                    </button>
+                  </div>
+                )}
+
+                {/* Danh sách bình luận */}
+                <div className="border-t border-gray-200 pt-4">
+                  <h4 className="text-base font-semibold text-gray-800 mb-4">
+                    Bình luận ({reviews.length})
+                  </h4>
+
+                  {reviewsLoading ? (
+                    <p className="text-sm text-gray-500">Đang tải bình luận...</p>
+                  ) : reviews.length === 0 ? (
+                    <p className="text-sm text-gray-500">Chưa có bình luận nào cho sản phẩm này.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {reviews.map((review) => (
+                        <div key={review.id} className="border border-gray-100 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                {review.user_name?.[0]?.toUpperCase() || 'U'}
+                              </span>
+                              <span className="text-sm font-semibold text-gray-800">{review.user_name}</span>
+                            </div>
+                            <span className="text-xs text-gray-400">{formatDate(review.created_at)}</span>
+                          </div>
+                          <div className="mb-2">
+                            {renderStars(review.rating)}
+                          </div>
+                          {review.comment && (
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{review.comment}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

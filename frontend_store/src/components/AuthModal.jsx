@@ -1,11 +1,76 @@
 'use client';
 
+import { useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 
 export default function AuthModal() {
-  const { isAuthModalOpen, setIsAuthModalOpen } = useAppStore();
+  const { isAuthModalOpen, setIsAuthModalOpen, login, register, isAuthLoading, showToast } = useAppStore();
+
+  const [mode, setMode] = useState('login'); // 'login' | 'register'
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   if (!isAuthModalOpen) return null;
+
+  const resetForm = () => {
+    setUsername('');
+    setEmail('');
+    setPhone('');
+    setPassword('');
+    setConfirmPassword('');
+    setError('');
+    setSuccessMessage('');
+  };
+
+  const switchMode = (newMode) => {
+    setMode(newMode);
+    resetForm();
+  };
+
+  const handleClose = () => {
+    setIsAuthModalOpen(false);
+    resetForm();
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMessage('');
+
+    if (mode === 'register') {
+      if (password !== confirmPassword) {
+        setError('Mật khẩu xác nhận không khớp.');
+        return;
+      }
+      // Kiểm tra số điện thoại: đúng 10 chữ số, không ký tự khác
+      if (!/^\d{10}$/.test(phone)) {
+        setError('Số điện thoại phải gồm đúng 10 chữ số, không chứa ký tự khác.');
+        return;
+      }
+      const result = await register(username, email, password, phone);
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      // Đăng ký thành công nhưng chưa được duyệt — hiển thị thông báo, không đóng modal
+      setSuccessMessage(result.message);
+      return;
+    }
+
+    // mode === 'login'
+    const result = await login(username, password);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    showToast('Đăng nhập thành công!');
+    handleClose();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -13,22 +78,138 @@ export default function AuthModal() {
         
         {/* Nút đóng Modal */}
         <button 
-          onClick={() => setIsAuthModalOpen(false)}
+          onClick={handleClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition p-1"
         >
           ✕
         </button>
 
-        {/* Nội dung khung rỗng chuẩn bị cho tính năng Đăng nhập */}
-        <div className="py-8 text-center space-y-3">
-          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
+        {/* Tiêu đề */}
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold mb-3">
             👤
           </div>
-          <h3 className="text-xl font-bold text-gray-900">Đăng Nhập / Đăng Ký</h3>
-          <p className="text-sm text-gray-500">
-            Tính năng đăng nhập đang được cập nhật...
-          </p>
+          <h3 className="text-xl font-bold text-gray-900">
+            {mode === 'login' ? 'Đăng Nhập' : 'Đăng Ký'}
+          </h3>
         </div>
+
+        {/* Tab chuyển đổi */}
+        <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+          <button
+            type="button"
+            onClick={() => switchMode('login')}
+            className={`flex-1 py-2 text-sm font-semibold rounded-md transition cursor-pointer ${
+              mode === 'login' ? 'bg-white text-blue-600 shadow' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Đăng nhập
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode('register')}
+            className={`flex-1 py-2 text-sm font-semibold rounded-md transition cursor-pointer ${
+              mode === 'register' ? 'bg-white text-blue-600 shadow' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Đăng ký
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              placeholder="Nhập tên đăng nhập"
+            />
+          </div>
+
+          {mode === 'register' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  placeholder="Nhập email (tùy chọn)"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, '').slice(0, 10))}
+                  required
+                  inputMode="numeric"
+                  pattern="\d{10}"
+                  maxLength={10}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  placeholder="Nhập 10 chữ số"
+                />
+                <p className="text-xs text-gray-400 mt-1">Số điện thoại gồm đúng 10 chữ số, không chứa ký tự khác.</p>
+              </div>
+            </>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              placeholder="Nhập mật khẩu"
+            />
+          </div>
+
+          {mode === 'register' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                placeholder="Nhập lại mật khẩu"
+              />
+            </div>
+          )}
+
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
+
+          {successMessage && (
+            <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+              {successMessage}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={isAuthLoading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition cursor-pointer"
+          >
+            {isAuthLoading
+              ? 'Đang xử lý...'
+              : mode === 'login' ? 'Đăng nhập' : 'Đăng ký'}
+          </button>
+        </form>
 
       </div>
     </div>

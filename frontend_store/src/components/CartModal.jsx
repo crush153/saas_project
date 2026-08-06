@@ -14,6 +14,8 @@ export default function CartModal() {
     decreaseQuantity, 
     removeFromCart,
     clearCart,
+    user,
+    accessToken,
   } = useAppStore();
 
   const [customer, setCustomer] = useState({ name: '', phone: '', address: '' });
@@ -21,6 +23,8 @@ export default function CartModal() {
   const [errorMessage, setErrorMessage] = useState('');
 
   if (!isCartOpen) return null;
+
+  const isLoggedIn = Boolean(user);
 
   const handleOrder = async (e) => {
     e.preventDefault();
@@ -30,24 +34,44 @@ export default function CartModal() {
       return;
     }
 
-    const orderData = {
-      customer_name: customer.name,
-      customer_phone: customer.phone,
-      shipping_address: customer.address,
-      items: cart.map(({ product_id, quantity }) => ({ product_id, quantity })),
-    };
+    // Validate số điện thoại: đúng 10 chữ số, không chứa chữ cái và ký tự đặc biệt
+    if (!isLoggedIn && !/^\d{10}$/.test(customer.phone)) {
+      setErrorMessage('Số điện thoại phải gồm đúng 10 chữ số, không chứa chữ cái và ký tự đặc biệt.');
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
+    }
+
+    // Khi user đã đăng nhập: backend tự lấy thông tin từ userprofile, không gửi name/phone
+    const orderData = isLoggedIn
+      ? {
+          shipping_address: customer.address,
+          items: cart.map(({ product_id, quantity }) => ({ product_id, quantity })),
+        }
+      : {
+          customer_name: customer.name,
+          customer_phone: customer.phone,
+          shipping_address: customer.address,
+          items: cart.map(({ product_id, quantity }) => ({ product_id, quantity })),
+        };
 
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (isLoggedIn && accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+
       const response = await fetch(`${API_URL}orders/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(orderData),
       });
 
       if (response.ok) {
         setShowSuccess(true);
       } else {
-        setErrorMessage('Có lỗi xảy ra khi gửi đơn hàng.');
+        const data = await response.json().catch(() => ({}));
+        const phoneError = data.customer_phone?.[0];
+        setErrorMessage(phoneError || 'Có lỗi xảy ra khi gửi đơn hàng.');
         setTimeout(() => setErrorMessage(''), 3000);
       }
     } catch (error) {
@@ -164,22 +188,33 @@ export default function CartModal() {
             </div>
 
             <form onSubmit={handleOrder} className="space-y-2">
-              <input
-                type="text"
-                placeholder="Họ và tên"
-                value={customer.name}
-                onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
-                required
-                className="w-full border border-gray-300 p-2 rounded-md bg-white text-sm text-gray-900 focus:outline-none focus:border-blue-500"
-              />
-              <input
-                type="text"
-                placeholder="Số điện thoại"
-                value={customer.phone}
-                onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
-                required
-                className="w-full border border-gray-300 p-2 rounded-md bg-white text-sm text-gray-900 focus:outline-none focus:border-blue-500"
-              />
+              {isLoggedIn ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-xs text-blue-700 space-y-1">
+                  <p className="font-semibold">👤 {user?.username}</p>
+                  <p>📞 {user?.phone || 'Chưa cập nhật số điện thoại'}</p>
+                  <p className="text-blue-500">Thông tin người nhận sẽ được lấy từ tài khoản của bạn.</p>
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Họ và tên"
+                    value={customer.name}
+                    onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
+                    required
+                    className="w-full border border-gray-300 p-2 rounded-md bg-white text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Số điện thoại (10 số)"
+                    value={customer.phone}
+                    onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
+                    required
+                    maxLength={10}
+                    className="w-full border border-gray-300 p-2 rounded-md bg-white text-sm text-gray-900 focus:outline-none focus:border-blue-500"
+                  />
+                </>
+              )}
               <textarea
                 placeholder="Địa chỉ nhận hàng chi tiết"
                 value={customer.address}
