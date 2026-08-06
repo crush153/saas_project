@@ -2,6 +2,7 @@ import re
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Product, Order, Footer, UserProfile, Review, PageVisit
+import json
 
 class ProductSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(source='get_category_display', read_only=True)
@@ -9,6 +10,28 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = ['id', 'category', 'category_display', 'name', 'price', 'image', 'image2', 'image3', 'image4', 'image5', 'description', 'specifications', 'is_active', 'stock', 'created_at']
+
+    def to_internal_value(self, data):
+    # Nếu specifications là text "key: value" (không phải JSON hợp lệ),
+    # chuyển thành chuỗi JSON hợp lệ TRƯỚC KHI JSONField của DRF tự parse
+        specs = data.get('specifications') if hasattr(data, 'get') else None
+        if isinstance(specs, str) and specs.strip():
+            try:
+                json.loads(specs)  # đã là JSON hợp lệ -> để nguyên
+            except (json.JSONDecodeError, ValueError):
+                data = data.copy()
+                new_specs = []
+                for line in specs.strip().split('\n'):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    if ':' in line:
+                        key, val = line.split(':', 1)
+                        new_specs.append({'key': key.strip(), 'value': val.strip()})
+                    else:
+                        new_specs.append({'key': line, 'value': ''})
+                data['specifications'] = json.dumps(new_specs)
+        return super().to_internal_value(data)
 
     def validate_specifications(self, value):
         """Tự động convert text dạng 'key: value' (mỗi dòng) sang JSON array.

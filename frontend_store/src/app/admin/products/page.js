@@ -110,6 +110,10 @@ export default function AdminProducts() {
     }
   };
 
+  const handleRemoveImage = (name) => {
+  setForm((f) => ({ ...f, [name]: '__REMOVE__' }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -122,12 +126,11 @@ export default function AdminProducts() {
     fd.append('is_active', form.is_active);
     fd.append('description', form.description);
     fd.append('specifications', form.specifications);
-    // Gửi các ảnh (image, image2..image5) — ảnh đầu tiên là ảnh đại diện
-    if (form.image) fd.append('image', form.image);
-    if (form.image2) fd.append('image2', form.image2);
-    if (form.image3) fd.append('image3', form.image3);
-    if (form.image4) fd.append('image4', form.image4);
-    if (form.image5) fd.append('image5', form.image5);
+
+    ['image', 'image2', 'image3', 'image4', 'image5'].forEach((key) => {
+      if (form[key] === '__REMOVE__') fd.append(key, '');
+      else if (form[key]) fd.append(key, form[key]);
+    });
 
     try {
       const url = editingId ? `${API_URL}products/${editingId}/` : `${API_URL}products/`;
@@ -259,7 +262,7 @@ export default function AdminProducts() {
       {/* Form thêm/sửa */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="p-5 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-800">
                 {editingId ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới'}
@@ -343,9 +346,11 @@ export default function AdminProducts() {
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                 />
-                {form.existingImage && (
-                  <p className="text-xs text-gray-500 mt-1">
+                {form.existingImage && form.image !== '__REMOVE__' && (
+                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-2">
                     Ảnh hiện tại: <span className="font-medium">{getFileName(form.existingImage)}</span>
+                    <button type="button" onClick={() => handleRemoveImage('image')}
+                      className="text-red-500 hover:text-red-700 font-bold px-1">×</button>
                   </p>
                 )}
               </div>
@@ -367,9 +372,11 @@ export default function AdminProducts() {
                       onChange={handleChange}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                     />
-                    {f.existing && (
-                      <p className="text-xs text-gray-500 mt-1">
+                    {f.existing && form[f.name] !== '__REMOVE__' && (
+                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-2">
                         Hiện tại: <span className="font-medium">{getFileName(f.existing)}</span>
+                        <button type="button" onClick={() => handleRemoveImage(f.name)}
+                          className="text-red-500 hover:text-red-700 font-bold px-1">×</button>
                       </p>
                     )}
                   </div>
