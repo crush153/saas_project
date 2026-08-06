@@ -7,7 +7,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { API_URL } from '@/config/api';
 
 export default function AdminDashboard() {
-  const { accessToken } = useAppStore();
+  const { authFetch } = useAppStore();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -15,9 +15,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`${API_URL}admin/analytics/`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
+        const res = await authFetch(`${API_URL}admin/analytics/`);
         if (!res.ok) throw new Error('Không thể tải dữ liệu');
         const json = await res.json();
         setData(json);
@@ -27,8 +25,8 @@ export default function AdminDashboard() {
         setLoading(false);
       }
     };
-    if (accessToken) fetchData();
-  }, [accessToken]);
+    fetchData();
+  }, [authFetch]);
 
   const fmt = (n) => Number(n || 0).toLocaleString('vi-VN');
 

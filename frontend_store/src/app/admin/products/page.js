@@ -21,10 +21,31 @@ const EMPTY_FORM = {
   description: '',
   specifications: '',
   image: null,
+  image2: null,
+  image3: null,
+  image4: null,
+  image5: null,
+  // URL ảnh hiện có (để hiển thị tên file khi edit)
+  existingImage: '',
+  existingImage2: '',
+  existingImage3: '',
+  existingImage4: '',
+  existingImage5: '',
+};
+
+// Lấy tên file từ URL ảnh (để hiển thị tên ảnh đã up)
+const getFileName = (url) => {
+  if (!url) return '';
+  try {
+    const parts = url.split('/');
+    return decodeURIComponent(parts[parts.length - 1]);
+  } catch {
+    return url;
+  }
 };
 
 export default function AdminProducts() {
-  const { accessToken, showToast } = useAppStore();
+  const { authFetch, showToast } = useAppStore();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -34,9 +55,7 @@ export default function AdminProducts() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch(`${API_URL}products/`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const res = await authFetch(`${API_URL}products/`);
       if (res.ok) setProducts(await res.json());
     } catch {
       showToast('Không thể tải danh sách sản phẩm.');
@@ -46,8 +65,8 @@ export default function AdminProducts() {
   };
 
   useEffect(() => {
-    if (accessToken) fetchProducts();
-  }, [accessToken]);
+    fetchProducts();
+  }, []);
 
   const openCreate = () => {
     setEditingId(null);
@@ -68,14 +87,24 @@ export default function AdminProducts() {
         ? p.specifications.map((s) => `${s.key}: ${s.value}`).join('\n')
         : '',
       image: null,
+      image2: null,
+      image3: null,
+      image4: null,
+      image5: null,
+      existingImage: p.image || '',
+      existingImage2: p.image2 || '',
+      existingImage3: p.image3 || '',
+      existingImage4: p.image4 || '',
+      existingImage5: p.image5 || '',
     });
     setShowForm(true);
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-    if (name === 'image') {
-      setForm({ ...form, image: files[0] || null });
+    // Xử lý các field ảnh (image, image2..image5)
+    if (['image', 'image2', 'image3', 'image4', 'image5'].includes(name)) {
+      setForm({ ...form, [name]: files[0] || null });
     } else {
       setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
     }
@@ -93,13 +122,17 @@ export default function AdminProducts() {
     fd.append('is_active', form.is_active);
     fd.append('description', form.description);
     fd.append('specifications', form.specifications);
+    // Gửi các ảnh (image, image2..image5) — ảnh đầu tiên là ảnh đại diện
     if (form.image) fd.append('image', form.image);
+    if (form.image2) fd.append('image2', form.image2);
+    if (form.image3) fd.append('image3', form.image3);
+    if (form.image4) fd.append('image4', form.image4);
+    if (form.image5) fd.append('image5', form.image5);
 
     try {
       const url = editingId ? `${API_URL}products/${editingId}/` : `${API_URL}products/`;
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method: editingId ? 'PUT' : 'POST',
-        headers: { Authorization: `Bearer ${accessToken}` },
         body: fd,
       });
 
@@ -121,9 +154,8 @@ export default function AdminProducts() {
   const handleDelete = async (id) => {
     if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
     try {
-      const res = await fetch(`${API_URL}products/${id}/`, {
+      const res = await authFetch(`${API_URL}products/${id}/`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (res.ok) {
         showToast('Đã xóa sản phẩm.');
@@ -303,7 +335,7 @@ export default function AdminProducts() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh sản phẩm</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh đại diện</label>
                 <input
                   type="file"
                   name="image"
@@ -311,6 +343,37 @@ export default function AdminProducts() {
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                 />
+                {form.existingImage && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ảnh hiện tại: <span className="font-medium">{getFileName(form.existingImage)}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Ảnh 2-5 (tùy chọn) */}
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { name: 'image2', label: 'Ảnh 2', existing: form.existingImage2 },
+                  { name: 'image3', label: 'Ảnh 3', existing: form.existingImage3 },
+                  { name: 'image4', label: 'Ảnh 4', existing: form.existingImage4 },
+                  { name: 'image5', label: 'Ảnh 5', existing: form.existingImage5 },
+                ].map((f) => (
+                  <div key={f.name}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+                    <input
+                      type="file"
+                      name={f.name}
+                      accept="image/*"
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    />
+                    {f.existing && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Hiện tại: <span className="font-medium">{getFileName(f.existing)}</span>
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
 
               <div>

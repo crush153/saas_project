@@ -15,7 +15,6 @@ class ProductAdminForm(forms.ModelForm):
             '<code>[{"key": "Dung tích", "value": "500 lít"}]</code>'
         )
     )
-
     class Meta:
         model = Product
         fields = '__all__'
@@ -74,7 +73,11 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     fieldsets = (
         ('Thông tin cơ bản', {
-            'fields': ('category', 'name', 'price', 'image', 'is_active', 'stock')
+            'fields': ('category', 'name', 'price', 'is_active', 'stock')
+        }),
+        ('Hình ảnh sản phẩm', {
+            'fields': ('image', 'image2', 'image3', 'image4', 'image5'),
+            'description': 'Ảnh đầu tiên (image) là ảnh đại diện. Có thể upload tối đa 5 ảnh.'
         }),
         ('Mô tả (hỗ trợ Markdown)', {
             'fields': ('description',),

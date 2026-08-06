@@ -10,8 +10,9 @@ export const useAppStore = create(
       accessToken: null,
       refreshToken: null,
       isAuthLoading: false,
+      tokenIssuedAt: null, // Thời điểm đăng nhập — tính thời hạn phiên (refresh token 3 ngày)
 
-      setAuth: (user, accessToken, refreshToken) => set({ user, accessToken, refreshToken }),
+      setAuth: (user, accessToken, refreshToken) => set({ user, accessToken, refreshToken, tokenIssuedAt: Date.now() }),
 
       login: async (username, password) => {
         set({ isAuthLoading: true });
@@ -30,6 +31,7 @@ export const useAppStore = create(
             accessToken: data.access,
             refreshToken: data.refresh,
             isAuthLoading: false,
+            tokenIssuedAt: Date.now(),
           });
           // Lấy thông tin user
           const meRes = await fetch(`${API_URL}auth/me/`, {
@@ -158,6 +160,60 @@ export const useAppStore = create(
         set({ toast: { show: true, message } });
         setTimeout(() => set({ toast: { show: false, message: '' } }), 2500);
       },
+
+      // --- 5. XỬ LÝ 401 TOÀN CỤC + KIỂM TRA HẾT HẠN PHIÊN ---
+      authFetch: async (url, options = {}) => {
+        const state = get();
+        const headers = { ...options.headers };
+        if (state.accessToken) {
+          headers.Authorization = `Bearer ${state.accessToken}`;
+        }
+        let res = await fetch(url, { ...options, headers });
+
+        // Nếu gặp 401, tự động refresh token một lần
+        if (res.status === 401 && state.refreshToken) {
+          const refreshResult = await get().refreshAccessToken();
+          if (refreshResult.ok) {
+            // Gửi lại request với token mới
+            headers.Authorization = `Bearer ${refreshResult.accessToken}`;
+            res = await fetch(url, { ...options, headers });
+          } else {
+            // Refresh thất bại → logout
+            get().logout();
+            get().showToast('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            return res;
+          }
+        }
+        return res;
+      },
+
+      checkSessionExpiry: () => {
+        const state = get();
+        if (!state.tokenIssuedAt || !state.user) return null;
+
+        const elapsedMs = Date.now() - state.tokenIssuedAt;
+        const elapsedHours = elapsedMs / (1000 * 60 * 60);
+        const refreshTokenLifetimeHours = 3 * 24; // 3 ngày
+
+        const remainingHours = refreshTokenLifetimeHours - elapsedHours;
+
+        // Cảnh báo khi còn dưới 12 giờ
+        if (remainingHours <= 12 && remainingHours > 0) {
+          const hours = Math.floor(remainingHours);
+          const mins = Math.floor((remainingHours - hours) * 60);
+          return {
+            expired: false,
+            warning: true,
+            message: `Phiên đăng nhập ${hours > 0 ? `${hours} giờ ${mins} phút` : `${mins} phút`} sẽ hết hạn. Vui lòng đăng nhập để tiếp tục.`,
+          };
+        }
+        // Đã hết hạn
+        if (remainingHours <= 0) {
+          get().logout();
+          return { expired: true, message: 'Phiên đăng nhập đã hết hạn.' };
+        }
+        return null;
+      },
     }),
     {
       name: 'saas-store-storage',
@@ -166,6 +222,7 @@ export const useAppStore = create(
         user: state.user,
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
+        tokenIssuedAt: state.tokenIssuedAt,
       }),
     }
   )

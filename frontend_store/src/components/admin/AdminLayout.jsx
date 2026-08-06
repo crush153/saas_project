@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/useAppStore';
@@ -17,7 +18,22 @@ const NAV_ITEMS = [
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, showToast } = useAppStore();
+  const { user, logout, showToast, checkSessionExpiry } = useAppStore();
+
+  // Kiểm tra thời hạn phiên đăng nhập mỗi phút — cảnh báo khi sắp hết hạn
+  useEffect(() => {
+    const check = () => {
+      const result = checkSessionExpiry();
+      if (result && result.expired) {
+        router.push('/');
+      } else if (result && result.warning) {
+        showToast(result.message);
+      }
+    };
+    check();
+    const interval = setInterval(check, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Nếu chưa đăng nhập hoặc không phải staff → chặn
   if (!user || !user.is_staff) {

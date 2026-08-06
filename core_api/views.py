@@ -6,6 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticate
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth.models import User
 from .models import Product, Order, Footer, UserProfile, Review, PageVisit
 from .serializers import ProductSerializer, OrderSerializer, FooterSerializer, RegisterSerializer, UserSerializer, ReviewSerializer, PageVisitSerializer
 from decimal import Decimal

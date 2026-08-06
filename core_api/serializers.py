@@ -8,8 +8,57 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'category', 'category_display', 'name', 'price', 'image', 'description', 'specifications', 'is_active', 'stock', 'created_at']
-        
+        fields = ['id', 'category', 'category_display', 'name', 'price', 'image', 'image2', 'image3', 'image4', 'image5', 'description', 'specifications', 'is_active', 'stock', 'created_at']
+
+    def validate_specifications(self, value):
+        """Tự động convert text dạng 'key: value' (mỗi dòng) sang JSON array.
+        User chỉ cần nhập: Dung tích: 500 lít — không cần dấu ngoặc hay JSON."""
+        if not value:
+            return []
+        if isinstance(value, str):
+            import json
+            text = value.strip()
+            # Thử parse JSON trước (nếu user nhập JSON array)
+            try:
+                parsed = json.loads(text)
+                if isinstance(parsed, list):
+                    return parsed
+                return [{'key': str(parsed), 'value': ''}]
+            except (json.JSONDecodeError, ValueError):
+                pass
+            # Parse text dạng "key: value" mỗi dòng
+            new_specs = []
+            for line in text.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                if ':' in line:
+                    key, val = line.split(':', 1)
+                    new_specs.append({'key': key.strip(), 'value': val.strip()})
+                else:
+                    new_specs.append({'key': line, 'value': ''})
+            return new_specs
+        if isinstance(value, list):
+            return value
+        return []
+
+    def validate_description(self, value):
+        """Tự động thêm bullet (- ) cho mỗi dòng mô tả chưa có bullet."""
+        if not value:
+            return value
+        lines = value.split('\n')
+        new_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            # Nếu dòng đã là markdown (bullet, heading, quote, code, số.) thì giữ nguyên
+            if stripped.startswith(('- ', '* ', '#', '>', '```', '1.', '2.', '3.')) or stripped.startswith('![') or stripped.startswith('['):
+                new_lines.append(stripped)
+            else:
+                new_lines.append(f'- {stripped}')
+        return '\n'.join(new_lines)
+
 class OrderSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
     # User đã đăng nhập không gửi 2 field này — backend tự lấy từ userprofile

@@ -19,6 +19,21 @@ export default function ProductDetail({ params }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('specs'); // 'specs' | 'reviews'
   const [quantity, setQuantity] = useState(1);
+  // Ảnh chính đang hiển thị (mặc định là ảnh đầu tiên)
+  const [activeImage, setActiveImage] = useState('');
+
+  // Danh sách tất cả ảnh sản phẩm (tối đa 5) — gom từ image, image2..image5
+  const productImages = product
+    ? [product.image, product.image2, product.image3, product.image4, product.image5]
+        .filter(Boolean)
+    : [];
+
+  // Đồng bộ activeImage khi product tải xong
+  useEffect(() => {
+    if (product && productImages.length > 0) {
+      setActiveImage(productImages[0]);
+    }
+  }, [product]);
 
   // State quản lý hiệu ứng nút bấm
   const [isAdded, setIsAdded] = useState(false);
@@ -230,13 +245,40 @@ export default function ProductDetail({ params }) {
         {/* Khung chính: Ảnh & Thao tác mua hàng */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           
-          {/* Cột trái: Ảnh sản phẩm */}
-          <div className="w-full aspect-square bg-gray-50 rounded-lg flex items-center justify-center p-4 border border-gray-100">
-            <img 
-              src={product.image || 'https://via.placeholder.com/400'} 
-              alt={product.name} 
-              className="max-w-full max-h-full object-contain"
-            />
+          {/* Cột trái: Ảnh sản phẩm + Thumb container */}
+          <div>
+            {/* Ảnh chính */}
+            <div className="w-full aspect-square bg-gray-50 rounded-lg flex items-center justify-center p-4 border border-gray-100">
+              <img 
+                src={activeImage || product.image || 'https://via.placeholder.com/400'} 
+                alt={product.name} 
+                className="max-w-full max-h-full object-contain transition-opacity duration-200"
+              />
+            </div>
+
+            {/* Thumb container — hiển thị khi có từ 2 ảnh trở lên (tối đa 5) */}
+            {productImages.length > 1 && (
+              <div className="flex gap-2 mt-3">
+                {productImages.slice(0, 5).map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImage(img)}
+                    className={`w-16 h-16 rounded-lg border-2 overflow-hidden bg-gray-50 flex items-center justify-center transition cursor-pointer ${
+                      activeImage === img
+                        ? 'border-blue-600 ring-2 ring-blue-200'
+                        : 'border-gray-200 hover:border-gray-400'
+                    }`}
+                    title={`Ảnh ${idx + 1}`}
+                  >
+                    <img 
+                      src={img} 
+                      alt={`${product.name} - ảnh ${idx + 1}`} 
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Cột phải: Thông tin & Nút mua hàng */}
