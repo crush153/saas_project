@@ -31,7 +31,7 @@ export default function AdminLayout({ children }) {
       }
     };
     check();
-    const interval = setInterval(check, 60000);
+    const interval = setInterval(check, 180000);
     return () => clearInterval(interval);
   }, []);
 

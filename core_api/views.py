@@ -67,6 +67,16 @@ class OrderViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated()]
         return [AllowAny()]
 
+    #đánh dấu khi staff đổi status qua trang admin
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        new_status = serializer.validated_data.get('status', instance.status)
+        if new_status == 'CANCELLED' and instance.status != 'CANCELLED':
+            # Nếu admin hủy đơn: lưu lại ai hủy
+            serializer.save(cancelled_by='STAFF')
+        else:
+            serializer.save()        
+
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def my(self, request):
         """Lấy danh sách đơn hàng của user hiện tại"""
@@ -86,6 +96,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Đơn hàng đã hoàn thành hoặc đã hủy, không thể hủy.'}, status=status.HTTP_400_BAD_REQUEST)
 
         order.status = 'CANCELLED'
+        order.cancelled_by = 'CUSTOMER'
         order.save()
         return Response({'ok': True, 'message': f'Đã hủy đơn hàng #{order.id}.'})
 

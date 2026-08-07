@@ -33,7 +33,10 @@ export default function AdminOrders() {
   };
 
   useEffect(() => {
-    if (accessToken) fetchOrders();
+    if (!accessToken) return;
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 30000); //30s refresh
+    return () => clearInterval(interval);
   }, [accessToken]);
 
   const updateStatus = async (id, status) => {
@@ -108,69 +111,75 @@ export default function AdminOrders() {
           {filtered.length === 0 ? (
             <p className="text-gray-400 text-center py-8">Không có đơn hàng nào.</p>
           ) : (
-            filtered.map((o) => (
-              <div key={o.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-4 flex items-center justify-between flex-wrap gap-3">
-                  <div>
-                    <p className="font-semibold text-gray-800">
-                      Đơn #{o.id} — {o.customer_name}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5"> Số điện thoại : {o.customer_phone} • Thời gian đặt hàng : {fmtDate(o.created_at)}</p>
-                    {o.user && <p className="text-xs text-blue-600 mt-0.5">👤 User ID: {o.user}</p>}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${STATUS_MAP[o.status].color}`}>
-                      {STATUS_MAP[o.status].label}
-                    </span>
-                    <select
-                      value={o.status}
-                      onChange={(e) => updateStatus(o.id, e.target.value)}
-                      className="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
-                    >
-                      {Object.entries(STATUS_MAP).map(([key, val]) => (
-                        <option key={key} value={key}>{val.label}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}
-                      className="text-blue-600 hover:text-blue-800 text-xs font-semibold cursor-pointer"
-                    >
-                      {expandedId === o.id ? 'Thu gọn' : 'Chi tiết'}
-                    </button>
-                    <button
-                      onClick={() => deleteOrder(o.id)}
-                      className="text-red-600 hover:text-red-800 text-xs font-semibold cursor-pointer"
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                </div>
+            filtered.map((o) => {
+              const statusLabel = o.status === 'CANCELLED'
+                ? `Đã hủy (${o.cancelled_by === 'CUSTOMER' ? 'khách hủy' : 'nhân viên hủy'})`
+                : STATUS_MAP[o.status]?.label;
 
-                {expandedId === o.id && (
-                  <div className="px-4 pb-4 border-t border-gray-100 pt-3">
-                    <p className="text-sm text-gray-700 mb-2">
-                      <span className="font-semibold">Địa chỉ:</span> {o.shipping_address}
-                    </p>
-                    <p className="text-sm text-gray-700 mb-2">
-                      <span className="font-semibold">Ghi chú:</span> {o.note}
-                    </p>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs font-semibold text-gray-500 mb-2">Sản phẩm:</p>
-                      <ul className="space-y-1">
-                        {(o.items || []).map((item, i) => (
-                          <li key={i} className="text-sm text-gray-700 flex justify-between">
-                            <span>{item.product_name} × {item.quantity}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="text-sm font-bold text-gray-800 mt-2">
-                        Tổng: {fmt(o.total_amount)}đ
+              return (
+                <div key={o.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="p-4 flex items-center justify-between flex-wrap gap-3">
+                    <div>
+                      <p className="font-semibold text-gray-800">
+                        Đơn #{o.id} — {o.customer_name}
                       </p>
+                      <p className="text-xs text-gray-500 mt-0.5"> Số điện thoại : {o.customer_phone} • Thời gian đặt hàng : {fmtDate(o.created_at)}</p>
+                      {o.user && <p className="text-xs text-blue-600 mt-0.5">👤 User ID: {o.user}</p>}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${STATUS_MAP[o.status]?.color || ''}`}>
+                        {statusLabel}
+                      </span>
+                      <select
+                        value={o.status}
+                        onChange={(e) => updateStatus(o.id, e.target.value)}
+                        className="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
+                      >
+                        {Object.entries(STATUS_MAP).map(([key, val]) => (
+                          <option key={key} value={key}>{val.label}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}
+                        className="text-blue-600 hover:text-blue-800 text-xs font-semibold cursor-pointer"
+                      >
+                        {expandedId === o.id ? 'Thu gọn' : 'Chi tiết'}
+                      </button>
+                      <button
+                        onClick={() => deleteOrder(o.id)}
+                        className="text-red-600 hover:text-red-800 text-xs font-semibold cursor-pointer"
+                      >
+                        Xóa
+                      </button>
                     </div>
                   </div>
-                )}
-              </div>
-            ))
+
+                  {expandedId === o.id && (
+                    <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+                      <p className="text-sm text-gray-700 mb-2">
+                        <span className="font-semibold">Địa chỉ:</span> {o.shipping_address}
+                      </p>
+                      <p className="text-sm text-gray-700 mb-2">
+                        <span className="font-semibold">Ghi chú:</span> {o.note}
+                      </p>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-gray-500 mb-2">Sản phẩm:</p>
+                        <ul className="space-y-1">
+                          {(o.items || []).map((item, i) => (
+                            <li key={i} className="text-sm text-gray-700 flex justify-between">
+                              <span>{item.product_name} × {item.quantity}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="text-sm font-bold text-gray-800 mt-2">
+                          Tổng: {fmt(o.total_amount)}đ
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
       )}

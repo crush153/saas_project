@@ -31,6 +31,13 @@ export default function UserProfileModal() {
       setSuccess('');
       fetchOrders();
     }
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsProfileModalOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+    
   }, [isProfileModalOpen, user]);
 
   if (!isProfileModalOpen) return null;

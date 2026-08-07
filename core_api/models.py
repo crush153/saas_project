@@ -114,6 +114,12 @@ class Order(models.Model):
         ('COMPLETED', 'Đã hoàn thành'),
         ('CANCELLED', 'Đã hủy'),
     ]
+
+    CANCELLED_BY_CHOICES = [
+        ('CUSTOMER', 'Khách hàng'),
+        ('STAFF', 'Nhân viên/Admin'),
+    ]
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -130,6 +136,7 @@ class Order(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', verbose_name="Trạng thái")
     note = models.TextField(blank=True, verbose_name="Ghi chú đơn hàng")
     created_at = models.DateTimeField(auto_now_add=True)
+    cancelled_by = models.CharField(max_length=20, choices=CANCELLED_BY_CHOICES, null=True, blank=True, verbose_name="Hủy bởi")
 
     def __str__(self):
         return f"Đơn hàng #{self.id} - {self.customer_name}"

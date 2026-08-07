@@ -91,8 +91,8 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'user', 'customer_name', 'customer_phone', 'shipping_address', 'items', 'total_amount', 'status', 'note', 'created_at']
-        read_only_fields = ['user', 'total_amount'] # Khách hàng đặt đơn không tự sửa đổi trạng thái và tổng tiền
+        fields = ['id', 'user', 'customer_name', 'customer_phone', 'shipping_address', 'items', 'total_amount', 'status', 'note', 'created_at', 'cancelled_by']
+        read_only_fields = ['user', 'total_amount', 'cancelled_by'] # Khách hàng đặt đơn không tự sửa đổi trạng thái và tổng tiền
 
     def validate_customer_phone(self, value):
         # Chống spam đơn ảo: chỉ cho phép đúng 10 chữ số, không chứa chữ cái và ký tự đặc biệt

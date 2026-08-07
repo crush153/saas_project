@@ -30,6 +30,13 @@ export default function CartModal() {
     if (isCartOpen && isLoggedIn && user?.address) {
       setCustomer((prev) => ({ ...prev, address: user.address }));
     }
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsCartOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+    
   }, [isCartOpen, isLoggedIn, user?.address]);
 
   if (!isCartOpen) return null;
