@@ -37,6 +37,7 @@ class Product(models.Model):
     )
 
     name = models.CharField(max_length=255, verbose_name="Tên sản phẩm")
+    sku = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="Mã sản phẩm (SKU)")
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Giá bán")
     image = models.ImageField(upload_to="products/", blank=True, null=True, verbose_name="Ảnh sản phẩm")
     image2 = models.ImageField(upload_to="products/", blank=True, null=True, verbose_name="Ảnh 2")
@@ -50,6 +51,13 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
+        # Chuẩn hóa SKU: strip khoảng trắng + uppercase để tránh trùng do khác hoa/thường
+        if self.sku:
+            self.sku = self.sku.strip().upper()
+            if not self.sku:
+                self.sku = None
+        else:
+            self.sku = None
         # Tự động chuyển đổi text sang JSON nếu specifications là string
         if isinstance(self.specifications, str):
             text = self.specifications.strip()

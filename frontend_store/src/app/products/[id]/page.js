@@ -285,6 +285,11 @@ export default function ProductDetail({ params }) {
           <div className="flex flex-col justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
+              {product.sku && (
+                <p className="text-sm text-gray-500 mb-2">
+                  Mã sản phẩm: <span className="font-mono font-semibold text-gray-700">{product.sku}</span>
+                </p>
+              )}
               <p className="text-3xl font-extrabold text-blue-600 mb-4">
                 {parseFloat(product.price).toLocaleString()}đ
               </p>

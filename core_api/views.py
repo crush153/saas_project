@@ -30,13 +30,19 @@ class ProductViewSet(viewsets.ModelViewSet):
         category = self.request.query_params.get('category', None)
         if category:
             queryset = queryset.filter(category__slug=category)
-        
-        #lọc theo tìm kiếm không dấu
+
+        # lọc chính xác theo mã sản phẩm (SKU) — không phân biệt hoa/thường
+        sku_query = self.request.query_params.get('sku', None)
+        if sku_query:
+            queryset = queryset.filter(sku__iexact=sku_query)
+
+        #lọc theo tìm kiếm không dấu (tên, mô tả, mã sản phẩm)
         search_query = self.request.query_params.get('search', None)
         if search_query:
             queryset = queryset.filter(
                 Q(name__unaccent__icontains=search_query) |
-                Q(description__unaccent__icontains=search_query)
+                Q(description__unaccent__icontains=search_query) |
+                Q(sku__unaccent__icontains=search_query)
             )
 
         # Khách hàng chỉ thấy sản phẩm đang hiển thị; admin thấy tất cả

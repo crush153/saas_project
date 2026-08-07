@@ -7,6 +7,7 @@ import { API_URL } from '@/config/api';
 
 const EMPTY_FORM = {
   name: '',
+  sku: '',
   category: 'thoi-trang',
   price: '',
   stock: 0,
@@ -46,6 +47,8 @@ export default function AdminProducts() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searching, setSearching] = useState(false);
 
   // Lấy danh sách category từ API (loại trừ "Chưa phân loại" — admin không cần gán)
   useEffect(() => {
@@ -55,20 +58,29 @@ export default function AdminProducts() {
       .catch(() => setCategories([]));
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (search = '') => {
     try {
-      const res = await authFetch(`${API_URL}products/`);
+      const url = search ? `${API_URL}products/?search=${encodeURIComponent(search)}` : `${API_URL}products/`;
+      const res = await authFetch(url);
       if (res.ok) setProducts(await res.json());
     } catch {
       showToast('Không thể tải danh sách sản phẩm.');
     } finally {
       setLoading(false);
+      setSearching(false);
     }
   };
 
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setSearching(true);
+    setLoading(true);
+    fetchProducts(searchQuery);
+  };
 
   const openCreate = () => {
     setEditingId(null);
@@ -80,6 +92,7 @@ export default function AdminProducts() {
     setEditingId(p.id);
     setForm({
       name: p.name,
+      sku: p.sku || '',
       category: p.category,
       price: p.price,
       stock: p.stock,
@@ -122,6 +135,7 @@ export default function AdminProducts() {
 
     const fd = new FormData();
     fd.append('name', form.name);
+    fd.append('sku', form.sku);
     fd.append('category', form.category);
     fd.append('price', form.price);
     fd.append('stock', form.stock);
@@ -190,6 +204,35 @@ export default function AdminProducts() {
         </button>
       </div>
 
+      {/* Ô tìm kiếm */}
+      <div className="mb-4">
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Tìm theo tên hoặc mã sản phẩm..."
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          />
+          <button
+            type="submit"
+            disabled={searching}
+            className="bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition cursor-pointer disabled:opacity-50"
+          >
+            {searching ? 'Đang tìm...' : 'Tìm kiếm'}
+          </button>
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => { setSearchQuery(''); setLoading(true); fetchProducts(''); }}
+              className="text-gray-500 hover:text-gray-700 text-sm px-3 py-2 cursor-pointer"
+            >
+              Xóa lọc
+            </button>
+          )}
+        </form>
+      </div>
+
       {loading && <p className="text-gray-500">Đang tải...</p>}
 
       {!loading && (
@@ -198,6 +241,7 @@ export default function AdminProducts() {
             <thead className="bg-gray-50 text-gray-600">
               <tr>
                 <th className="text-left px-4 py-3">Sản phẩm</th>
+                <th className="text-left px-4 py-3">Mã SKU</th>
                 <th className="text-left px-4 py-3">Danh mục</th>
                 <th className="text-right px-4 py-3">Giá</th>
                 <th className="text-center px-4 py-3">Tồn kho</th>
@@ -208,7 +252,7 @@ export default function AdminProducts() {
             <tbody className="divide-y divide-gray-100">
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-gray-400">
+                  <td colSpan={7} className="text-center py-8 text-gray-400">
                     Chưa có sản phẩm nào.
                   </td>
                 </tr>
@@ -224,6 +268,11 @@ export default function AdminProducts() {
                         />
                         <span className="font-medium text-gray-800">{p.name}</span>
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                        {p.sku || '—'}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{p.category_display}</td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-800">{fmt(p.price)}đ</td>
@@ -281,6 +330,21 @@ export default function AdminProducts() {
                   value={form.name}
                   onChange={handleChange}
                   required
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mã sản phẩm (SKU) * <span className="text-gray-400 font-normal">— để phân biệt các biến thể giống nhau</span>
+                </label>
+                <input
+                  type="text"
+                  name="sku"
+                  value={form.sku}
+                  onChange={handleChange}
+                  required
+                  placeholder="Ví dụ: ĐT-IP15-128-Đen"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>

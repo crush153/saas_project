@@ -13,14 +13,29 @@ class ProductSerializer(serializers.ModelSerializer):
     # Frontend gửi category dưới dạng slug (vd 'thoi-trang'), không phải id
     category = serializers.SlugRelatedField(slug_field='slug', queryset=Category.objects.all())
     category_display = serializers.CharField(source='category.name', read_only=True)
+    # SKU bắt buộc nhập (không cho phép để trống)
+    # allow_blank=True để validate_sku tự xử lý chuỗi rỗng với message tiếng Việt
+    sku = serializers.CharField(required=True, allow_blank=True, error_messages={'required': 'Mã sản phẩm là bắt buộc.'})
 
     class Meta:
         model = Product
-        fields = ['id', 'category', 'category_display', 'name', 'price', 'image', 'image2', 'image3', 'image4', 'image5', 'description', 'specifications', 'is_active', 'stock', 'created_at']
+        fields = ['id', 'category', 'category_display', 'sku', 'name', 'price', 'image', 'image2', 'image3', 'image4', 'image5', 'description', 'specifications', 'is_active', 'stock', 'created_at']
+
+    def validate_sku(self, value):
+        """Chuẩn hóa SKU: strip khoảng trắng + uppercase để tránh trùng do khác hoa/thường.
+        SKU là bắt buộc — không để trống."""
+        if not value or not value.strip():
+            raise serializers.ValidationError('Mã sản phẩm là bắt buộc.')
+        value = value.strip().upper()
+        # Check unique không phân biệt hoa/thường (abc-123 vs ABC-123 coi là trùng)
+        exists = Product.objects.filter(sku__iexact=value).exclude(pk=self.instance.pk if self.instance else None).exists()
+        if exists:
+            raise serializers.ValidationError('Mã sản phẩm đã tồn tại.')
+        return value
 
     def to_internal_value(self, data):
-    # Nếu specifications là text "key: value" (không phải JSON hợp lệ),
-    # chuyển thành chuỗi JSON hợp lệ TRƯỚC KHI JSONField của DRF tự parse
+        # Nếu specifications là text "key: value" (không phải JSON hợp lệ),
+        # chuyển thành chuỗi JSON hợp lệ TRƯỚC KHI JSONField của DRF tự parse
         specs = data.get('specifications') if hasattr(data, 'get') else None
         if isinstance(specs, str) and specs.strip():
             try:

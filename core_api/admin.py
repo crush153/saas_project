@@ -79,13 +79,13 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
-    list_display = ('name', 'price', 'stock', 'is_active', 'created_at')
+    list_display = ('sku', 'name', 'price', 'stock', 'is_active', 'created_at')
     list_filter = ('is_active', 'category')
     list_editable = ('is_active', 'stock')
-    search_fields = ('name',)
+    search_fields = ('name', 'sku')
     fieldsets = (
         ('Thông tin cơ bản', {
-            'fields': ('category', 'name', 'price', 'is_active', 'stock')
+            'fields': ('category', 'sku', 'name', 'price', 'is_active', 'stock')
         }),
         ('Hình ảnh sản phẩm', {
             'fields': ('image', 'image2', 'image3', 'image4', 'image5'),
