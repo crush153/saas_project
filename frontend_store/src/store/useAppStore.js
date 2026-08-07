@@ -13,6 +13,7 @@ export const useAppStore = create(
       tokenIssuedAt: null, // Thời điểm đăng nhập — tính thời hạn phiên (refresh token 3 ngày)
 
       setAuth: (user, accessToken, refreshToken) => set({ user, accessToken, refreshToken, tokenIssuedAt: Date.now() }),
+      setUser: (user) => set({ user }),
 
       login: async (username, password) => {
         set({ isAuthLoading: true });
@@ -48,17 +49,17 @@ export const useAppStore = create(
         }
       },
 
-      register: async (username, email, password, phone) => {
+      register: async (username, email, password, phone, address) => {
         set({ isAuthLoading: true });
         try {
           const res = await fetch(`${API_URL}auth/register/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email, password, phone }),
+            body: JSON.stringify({ username, email, password, phone, address }),
           });
           const data = await res.json();
           if (!res.ok) {
-            const msg = data.username?.[0] || data.email?.[0] || data.password?.[0] || data.phone?.[0] || 'Đăng ký thất bại.';
+            const msg = data.username?.[0] || data.email?.[0] || data.password?.[0] || data.phone?.[0] || data.address?.[0] || 'Đăng ký thất bại.';
             return { ok: false, message: msg };
           }
           // KHÔNG lưu token — tài khoản phải chờ quản trị viên duyệt
@@ -153,6 +154,10 @@ export const useAppStore = create(
       // --- 3. MODAL ĐĂNG NHẬP (MỚI) ---
       isAuthModalOpen: false,
       setIsAuthModalOpen: (open) => set({ isAuthModalOpen: open }),
+
+      // --- 3.1 MODAL THÔNG TIN & ĐƠN HÀNG USER ---
+      isProfileModalOpen: false,
+      setIsProfileModalOpen: (open) => set({ isProfileModalOpen: open }),
 
       // --- 4. TOAST TOÀN CỤC ---
       toast: { show: false, message: '' },

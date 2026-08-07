@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CartModal from '@/components/CartModal';
 import AuthModal from '@/components/AuthModal';
+import UserProfileModal from '@/components/UserProfileModal';
 import Toast from '@/components/Toast';
 import CATEGORIES from '@/config/categories';
 import { API_URL } from '@/config/api';
@@ -49,6 +50,7 @@ export default function RootLayout({ children }) {
           <>
             <CartModal />
             <AuthModal />
+            <UserProfileModal />
           </>
         )}
         <Toast />

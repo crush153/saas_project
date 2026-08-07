@@ -87,11 +87,12 @@ class OrderSerializer(serializers.ModelSerializer):
     # User đã đăng nhập không gửi 2 field này — backend tự lấy từ userprofile
     customer_name = serializers.CharField(required=False, allow_blank=True)
     customer_phone = serializers.CharField(required=False, allow_blank=True)
+    shipping_address = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Order
-        fields = ['id', 'user', 'customer_name', 'customer_phone', 'shipping_address', 'items', 'total_amount', 'status', 'created_at']
-        read_only_fields = ['user', 'status', 'total_amount'] # Khách hàng đặt đơn không tự sửa đổi trạng thái và tổng tiền
+        fields = ['id', 'user', 'customer_name', 'customer_phone', 'shipping_address', 'items', 'total_amount', 'status', 'note', 'created_at']
+        read_only_fields = ['user', 'total_amount'] # Khách hàng đặt đơn không tự sửa đổi trạng thái và tổng tiền
 
     def validate_customer_phone(self, value):
         # Chống spam đơn ảo: chỉ cho phép đúng 10 chữ số, không chứa chữ cái và ký tự đặc biệt
@@ -100,6 +101,8 @@ class OrderSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
+        if self.instance is None:
+            attrs.pop('status', None)  # Tạo đơn mới: luôn mặc định PENDING, không cho client set status
         # Khách vãng lai bắt buộc nhập Họ tên + SĐT; user đã đăng nhập thì backend tự lấy từ userprofile
         request = self.context.get('request')
         user = getattr(request, 'user', None) if request else None
@@ -110,6 +113,8 @@ class OrderSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'customer_name': 'Họ và tên là bắt buộc.'})
             if not attrs.get('customer_phone'):
                 raise serializers.ValidationError({'customer_phone': 'Số điện thoại là bắt buộc.'})
+            if not attrs.get('shipping_address'):
+                raise serializers.ValidationError({'shipping_address': 'Địa chỉ giao hàng là bắt buộc.'})
         return attrs
 
 class FooterSerializer(serializers.ModelSerializer):
@@ -121,10 +126,16 @@ class FooterSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
     phone = serializers.CharField(write_only=True)
+    address = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'phone']
+        fields = ['id', 'username', 'email', 'password', 'phone', 'address']
+
+    def validate_address(self, value):
+        if not value.strip():
+            raise serializers.ValidationError('Địa chỉ giao hàng không được để trống.')
+        return value.strip()
 
     def validate_phone(self, value):
         # Chỉ cho phép đúng 10 chữ số, không ký tự khác
@@ -134,6 +145,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         phone = validated_data.pop('phone')
+        address = validated_data.pop('address')
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data.get('email', ''),
@@ -142,16 +154,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         # Lưu số điện thoại vào UserProfile
         UserProfile.objects.update_or_create(
             user=user,
-            defaults={'phone': phone},
+            defaults={'phone': phone, 'address': address},
         )
         return user
 
 class UserSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(source='profile.phone', read_only=True, default='')
+    address = serializers.CharField(source='profile.address', read_only=True, default='')
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'phone', 'first_name', 'last_name', 'date_joined', 'is_staff', 'is_superuser']
+        fields = ['id', 'username', 'email', 'phone', 'address', 'first_name', 'last_name', 'date_joined', 'is_staff', 'is_superuser']
 
 class PageVisitSerializer(serializers.ModelSerializer):
     class Meta:

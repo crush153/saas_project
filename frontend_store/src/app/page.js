@@ -152,7 +152,7 @@ export default function Home() {
                   <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition">{p.name}</h3>
                 </Link>
                 <div>
-                  <p className="text-gray-500 text-sm my-1 line-clamp-2">{p.description}</p>
+                  {/*<p className="text-gray-500 text-sm my-1 line-clamp-2">{p.description}</p>*/}
                   <p className="text-green-600 font-bold my-2">{parseFloat(p.price).toLocaleString()}đ</p>
                 </div>
 

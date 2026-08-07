@@ -23,8 +23,8 @@ class Migration(migrations.Migration):
                 ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to=settings.AUTH_USER_MODEL, verbose_name='Người dùng')),
             ],
             options={
-                'verbose_name': 'Hồ sơ người dùng',
-                'verbose_name_plural': 'Hồ sơ người dùng',
+                'verbose_name': 'UserProfile',
+                'verbose_name_plural': 'UserProfile',
             },
         ),
     ]

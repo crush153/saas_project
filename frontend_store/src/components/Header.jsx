@@ -14,6 +14,7 @@ export default function Header({ categories = [] }) {
     cart, 
     setIsCartOpen, 
     setIsAuthModalOpen,
+    setIsProfileModalOpen,
     searchQuery, 
     setSearchQuery, 
     selectedCategory, 
@@ -203,6 +204,17 @@ export default function Header({ categories = [] }) {
                       >
                         ⚙️ Quản trị website
                       </Link>
+                    )}
+                    {!user.is_staff && (
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          setIsProfileModalOpen(true);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+                      >
+                        📋 Thông tin và đơn hàng
+                      </button>
                     )}
                     <button
                       onClick={() => {

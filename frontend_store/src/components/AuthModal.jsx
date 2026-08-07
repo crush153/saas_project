@@ -10,6 +10,7 @@ export default function AuthModal() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState(''); // Thêm state cho địa chỉ
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,6 +22,7 @@ export default function AuthModal() {
     setUsername('');
     setEmail('');
     setPhone('');
+    setAddress('');
     setPassword('');
     setConfirmPassword('');
     setError('');
@@ -52,7 +54,7 @@ export default function AuthModal() {
         setError('Số điện thoại phải gồm đúng 10 chữ số, không chứa ký tự khác.');
         return;
       }
-      const result = await register(username, email, password, phone);
+      const result = await register(username, email, password, phone, address);
       if (!result.ok) {
         setError(result.message);
         return;
@@ -156,6 +158,16 @@ export default function AuthModal() {
                   placeholder="Nhập 10 chữ số"
                 />
                 <p className="text-xs text-gray-400 mt-1">Số điện thoại gồm đúng 10 chữ số, không chứa ký tự khác.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ giao hàng</label>
+                <textarea
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-16 focus:outline-none focus:border-blue-500"
+                  placeholder="Nhập địa chỉ nhận hàng"
+                />
               </div>
             </>
           )}

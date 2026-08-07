@@ -6,7 +6,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { API_URL } from '@/config/api';
 
 export default function AdminUsers() {
-  const { accessToken, showToast } = useAppStore();
+  const { accessToken, showToast, user: currentUser } = useAppStore();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -95,6 +95,7 @@ export default function AdminUsers() {
                 <th className="text-left px-4 py-3">Email</th>
                 <th className="text-left px-4 py-3">SĐT</th>
                 <th className="text-center px-4 py-3">Ngày đăng ký</th>
+                <th className="text-center px-4 py-3">Người duyệt</th>
                 <th className="text-center px-4 py-3">Trạng thái</th>
                 <th className="text-center px-4 py-3">Thao tác</th>
               </tr>
@@ -102,7 +103,7 @@ export default function AdminUsers() {
             <tbody className="divide-y divide-gray-100">
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-gray-400">
+                  <td colSpan={7} className="text-center py-8 text-gray-400">
                     Không có người dùng nào.
                   </td>
                 </tr>
@@ -123,6 +124,9 @@ export default function AdminUsers() {
                     <td className="px-4 py-3 text-gray-600">{u.email || '—'}</td>
                     <td className="px-4 py-3 text-gray-600">{u.phone || '—'}</td>
                     <td className="px-4 py-3 text-center text-gray-500">{fmtDate(u.date_joined)}</td>
+                    <td className="px-4 py-3 text-center text-gray-600">
+                      {u.approved_by || '—'}
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                         u.is_approved ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
@@ -131,7 +135,7 @@ export default function AdminUsers() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {!u.is_approved ? (
+                      {(u.is_staff || u.id === currentUser?.id) ? null : !u.is_approved ? (
                         <div className="flex justify-center gap-2">
                           <button
                             onClick={() => approveUser(u.id, 'approve')}

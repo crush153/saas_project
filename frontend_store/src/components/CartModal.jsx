@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { API_URL } from '@/config/api';
 import SuccessAnimation from './SuccessAnimation';
@@ -15,16 +15,24 @@ export default function CartModal() {
     removeFromCart,
     clearCart,
     user,
-    accessToken,
+    authFetch,
   } = useAppStore();
 
   const [customer, setCustomer] = useState({ name: '', phone: '', address: '' });
+  const [note, setNote] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  if (!isCartOpen) return null;
-
   const isLoggedIn = Boolean(user);
+
+  // Pre-fill địa chỉ từ profile khi mở giỏ hàng cho user đã đăng nhập
+  useEffect(() => {
+    if (isCartOpen && isLoggedIn && user?.address) {
+      setCustomer((prev) => ({ ...prev, address: user.address }));
+    }
+  }, [isCartOpen, isLoggedIn, user?.address]);
+
+  if (!isCartOpen) return null;
 
   const handleOrder = async (e) => {
     e.preventDefault();
@@ -45,24 +53,21 @@ export default function CartModal() {
     const orderData = isLoggedIn
       ? {
           shipping_address: customer.address,
+          note: note,
           items: cart.map(({ product_id, quantity }) => ({ product_id, quantity })),
         }
       : {
           customer_name: customer.name,
           customer_phone: customer.phone,
           shipping_address: customer.address,
+          note: note,
           items: cart.map(({ product_id, quantity }) => ({ product_id, quantity })),
         };
 
     try {
-      const headers = { 'Content-Type': 'application/json' };
-      if (isLoggedIn && accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`;
-      }
-
-      const response = await fetch(`${API_URL}orders/`, {
+      const response = await authFetch(`${API_URL}orders/`, {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData),
       });
 
@@ -70,8 +75,15 @@ export default function CartModal() {
         setShowSuccess(true);
       } else {
         const data = await response.json().catch(() => ({}));
-        const phoneError = data.customer_phone?.[0];
-        setErrorMessage(phoneError || 'Có lỗi xảy ra khi gửi đơn hàng.');
+        const phoneError = data.customer_phone?.[0] || data.customer_phone;
+        const addressError = data.shipping_address?.[0] || data.shipping_address;
+        setErrorMessage(
+          phoneError || 
+          addressError || 
+          data.detail || 
+          (data.error && typeof data.error === 'string' ? data.error : null) ||
+          'Có lỗi xảy ra khi gửi đơn hàng.'
+        );
         setTimeout(() => setErrorMessage(''), 3000);
       }
     } catch (error) {
@@ -83,7 +95,7 @@ export default function CartModal() {
   const handleCloseSuccess = () => {
     setShowSuccess(false);
     clearCart();
-    setCustomer({ name: '', phone: '', address: '' });
+    setCustomer({ name: '', phone: '', address: '', note: '' });
     setIsCartOpen(false);
   };
 
@@ -192,7 +204,7 @@ export default function CartModal() {
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-xs text-blue-700 space-y-1">
                   <p className="font-semibold">👤 {user?.username}</p>
                   <p>📞 {user?.phone || 'Chưa cập nhật số điện thoại'}</p>
-                  <p className="text-blue-500">Thông tin người nhận sẽ được lấy từ tài khoản của bạn.</p>
+                  <p>🏠 {user?.address || 'Chưa cập nhật địa chỉ'}</p>
                 </div>
               ) : (
                 <>
@@ -215,11 +227,11 @@ export default function CartModal() {
                   />
                 </>
               )}
+
               <textarea
-                placeholder="Địa chỉ nhận hàng chi tiết"
-                value={customer.address}
-                onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                required
+                placeholder="Ghi chú (nếu có)"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
                 className="w-full border border-gray-300 p-2 rounded-md bg-white text-sm text-gray-900 h-16 focus:outline-none focus:border-blue-500"
               />
               <button

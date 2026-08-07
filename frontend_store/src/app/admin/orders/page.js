@@ -115,9 +115,7 @@ export default function AdminOrders() {
                     <p className="font-semibold text-gray-800">
                       Đơn #{o.id} — {o.customer_name}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {o.customer_phone} • {fmtDate(o.created_at)}
-                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5"> Số điện thoại : {o.customer_phone} • Thời gian đặt hàng : {fmtDate(o.created_at)}</p>
                     {o.user && <p className="text-xs text-blue-600 mt-0.5">👤 User ID: {o.user}</p>}
                   </div>
                   <div className="flex items-center gap-3">
@@ -152,6 +150,9 @@ export default function AdminOrders() {
                   <div className="px-4 pb-4 border-t border-gray-100 pt-3">
                     <p className="text-sm text-gray-700 mb-2">
                       <span className="font-semibold">Địa chỉ:</span> {o.shipping_address}
+                    </p>
+                    <p className="text-sm text-gray-700 mb-2">
+                      <span className="font-semibold">Ghi chú:</span> {o.note}
                     </p>
                     <div className="bg-gray-50 rounded-lg p-3">
                       <p className="text-xs font-semibold text-gray-500 mb-2">Sản phẩm:</p>

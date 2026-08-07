@@ -1,5 +1,6 @@
 import re
 from rest_framework import serializers, viewsets, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly, IsAdminUser
@@ -61,7 +62,32 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Khách hàng chỉ được tạo đơn; admin mới được xem danh sách/sửa/xóa
         if self.action in ['list', 'retrieve', 'update', 'partial_update', 'destroy']:
             return [IsAdminUser()]
+        # Hành động riêng của khách hàng: xem đơn của mình, hủy đơn của mình
+        if self.action in ['my', 'cancel']:
+            return [IsAuthenticated()]
         return [AllowAny()]
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def my(self, request):
+        """Lấy danh sách đơn hàng của user hiện tại"""
+        orders = Order.objects.filter(user=request.user).order_by('-created_at')
+        serializer = OrderSerializer(orders, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def cancel(self, request, pk=None):
+        """Hủy đơn hàng của chính mình (chỉ khi đơn chưa hoàn thành)"""
+        try:
+            order = Order.objects.get(id=pk, user=request.user)
+        except Order.DoesNotExist:
+            return Response({'error': 'Không tìm thấy đơn hàng.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.status in ['COMPLETED', 'CANCELLED']:
+            return Response({'error': 'Đơn hàng đã hoàn thành hoặc đã hủy, không thể hủy.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.status = 'CANCELLED'
+        order.save()
+        return Response({'ok': True, 'message': f'Đã hủy đơn hàng #{order.id}.'})
 
     def perform_create(self, serializer):
         items = self.request.data.get('items', []) 
@@ -92,10 +118,17 @@ class OrderViewSet(viewsets.ModelViewSet):
             # Ưu tiên họ tên đầy đủ nếu có, fallback về username
             full_name = (self.request.user.first_name + ' ' + self.request.user.last_name).strip()
             customer_name = full_name or self.request.user.username
+            # Địa chỉ giao hàng: ưu tiên client gửi lên, fallback về địa chỉ trong profile
+            shipping_address = self.request.data.get('shipping_address', '') or profile.address
+            if not shipping_address:
+                raise serializers.ValidationError({
+                    'shipping_address': 'Địa chỉ giao hàng không được để trống.'
+                })
             serializer.save(
                 user=self.request.user,
                 customer_name=customer_name,
                 customer_phone=profile.phone,
+                shipping_address=shipping_address,
                 total_amount=total,
                 items=enriched_items,
             )
@@ -115,10 +148,28 @@ def register(request):
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def me(request):
-    """Lấy thông tin user hiện tại (cần access token)"""
+    """Lấy / cập nhật thông tin user hiện tại (cần access token)"""
+    if request.method == 'GET':
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
+
+    # PATCH — cập nhật SĐT & địa chỉ
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    phone = request.data.get('phone', profile.phone)
+    address = request.data.get('address', profile.address)
+
+    if not re.fullmatch(r'\d{10}', phone):
+        return Response({'phone': 'Số điện thoại phải gồm đúng 10 chữ số, không chứa ký tự khác.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not address or not address.strip():
+        return Response({'address': 'Địa chỉ giao hàng không được để trống.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    profile.phone = phone
+    profile.address = address.strip()
+    profile.save()
+
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
 
@@ -127,6 +178,10 @@ class ApproveTokenObtainPairSerializer(TokenObtainPairSerializer):
     """Custom login: chặn tài khoản chưa được quản trị viên duyệt"""
     def validate(self, attrs):
         data = super().validate(attrs)
+
+        # Superuser có toàn quyền, không cần duyệt tài khoản
+        if self.user.is_superuser:
+            return data
 
         # Lấy hoặc tạo profile (user cũ có thể chưa có profile)
         profile, _ = UserProfile.objects.get_or_create(user=self.user)
@@ -191,7 +246,7 @@ def track_visit(request):
 def admin_users(request):
     """Danh sách người dùng đã đăng ký (admin)"""
     status_filter = request.query_params.get('status', 'all')  # all | pending | approved
-    users = User.objects.all().order_by('-date_joined')
+    users = User.objects.filter(is_superuser=False).order_by('-date_joined')
 
     if status_filter == 'pending':
         users = users.filter(profile__is_approved=False)
@@ -201,12 +256,15 @@ def admin_users(request):
     data = []
     for u in users:
         profile = getattr(u, 'profile', None)
+        approved_by = profile.approved_by if profile and profile.approved_by else None
         data.append({
             'id': u.id,
             'username': u.username,
             'email': u.email,
             'phone': profile.phone if profile else '',
+            'address': profile.address if profile else '',
             'is_approved': profile.is_approved if profile else False,
+            'approved_by': approved_by.username if approved_by else None,
             'is_staff': u.is_staff,
             'date_joined': u.date_joined,
         })
@@ -227,11 +285,13 @@ def admin_approve_user(request, user_id):
 
     if action == 'approve':
         profile.is_approved = True
+        profile.approved_by = request.user
         profile.approved_at = timezone.now()
         profile.save()
         return Response({'ok': True, 'message': f'Đã duyệt tài khoản {user.username}.'})
     elif action == 'reject':
         profile.is_approved = False
+        profile.approved_by = None
         profile.approved_at = None
         profile.save()
         return Response({'ok': True, 'message': f'Đã từ chối tài khoản {user.username}.'})

@@ -128,6 +128,7 @@ class Order(models.Model):
     items = models.JSONField(default=list, verbose_name="Danh sách sản phẩm mua")
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Tổng tiền")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', verbose_name="Trạng thái")
+    note = models.TextField(blank=True, verbose_name="Ghi chú đơn hàng")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -137,14 +138,23 @@ class Order(models.Model):
 class UserProfile(models.Model):
     """Hồ sơ người dùng - quản lý trạng thái duyệt tài khoản"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', verbose_name="Người dùng")
+    address =models.CharField(max_length=500, blank=True, verbose_name="Địa chỉ giao hàng")
     phone = models.CharField(max_length=10, blank=True, verbose_name="Số điện thoại")
     is_approved = models.BooleanField(default=False, verbose_name="Đã duyệt")
+    approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name='approved_profiles',
+        null=True,
+        blank=True,
+        verbose_name="Người duyệt"
+    )
     approved_at = models.DateTimeField(null=True, blank=True, verbose_name="Thời gian duyệt")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày đăng ký")
 
     class Meta:
-        verbose_name = "Hồ sơ người dùng"
-        verbose_name_plural = "Hồ sơ người dùng"
+        verbose_name = "UserProfile"
+        verbose_name_plural = "UserProfile"
 
     def __str__(self):
         status = "Đã duyệt" if self.is_approved else "Chờ duyệt"
@@ -160,8 +170,8 @@ class Review(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày đánh giá")
 
     class Meta:
-        verbose_name = "Đánh giá"
-        verbose_name_plural = "Đánh giá"
+        verbose_name = "Review"
+        verbose_name_plural = "Review"
         ordering = ['-created_at']
 
     def __str__(self):
@@ -191,8 +201,8 @@ class PageVisit(models.Model):
     viewed_at = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian truy cập")
 
     class Meta:
-        verbose_name = "Lượt truy cập"
-        verbose_name_plural = "Lượt truy cập"
+        verbose_name = "PageVisit"
+        verbose_name_plural = "PageVisit"
         ordering = ['-viewed_at']
 
     def __str__(self):
