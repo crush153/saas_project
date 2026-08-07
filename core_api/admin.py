@@ -2,7 +2,7 @@ from django.contrib import admin
 from django import forms
 from django.utils.safestring import mark_safe
 from django.utils import timezone
-from .models import Product, Order, Footer, UserProfile, Review, PageVisit
+from .models import Product, Order, Footer, UserProfile, Review, PageVisit, Category
 
 class ProductAdminForm(forms.ModelForm):
     """Custom form cho Product: cho phép nhập specifications dạng text, tự động parse sang JSON"""
@@ -63,6 +63,18 @@ class ProductAdminForm(forms.ModelForm):
                 new_specs.append({'key': line, 'value': ''})
         
         return new_specs
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug')
+    search_fields = ('name', 'slug')
+    prepopulated_fields = {'slug': ('name',)}
+
+    def has_delete_permission(self, request, obj=None):
+        # Chặn xóa row "Chưa phân loại" — không cho phép xóa qua admin
+        if obj is not None and obj.slug == 'chua-phan-loai':
+            return False
+        return super().has_delete_permission(request, obj)
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):

@@ -3,18 +3,36 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-class Product(models.Model):
-    CATEGORY_CHOICES = [
-        ('thoi-trang', 'Thời trang'),
-        ('dien-tu', 'Điện tử'),
-        ('gia-dung', 'Gia dụng'),
-        ('sach-truyen', 'Sách & Truyện'),
-    ]
+class Category(models.Model):
+    """Danh mục sản phẩm — quản lý qua Django admin, không có API CRUD cho frontend"""
+    name = models.CharField(max_length=100, verbose_name="Tên danh mục")
+    slug = models.SlugField(max_length=100, unique=True, verbose_name="Slug (dùng cho URL)")
 
-    category = models.CharField(
-        max_length=50,
-        choices=CATEGORY_CHOICES,
-        default='thoi-trang',
+    class Meta:
+        verbose_name = "Danh mục"
+        verbose_name_plural = "Danh mục"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+def get_default_category():
+    """Trả về Category 'Chưa phân loại' — dùng làm default cho Product.category.
+    Tra cứu động theo slug thay vì hard-code id, tránh phụ thuộc thứ tự tạo record."""
+    try:
+        return Category.objects.get(slug='chua-phan-loai').id
+    except Category.DoesNotExist:
+        # Fallback: nếu chưa có (lúc migration chưa seed), trả về None
+        return None
+
+
+class Product(models.Model):
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_DEFAULT,
+        default=get_default_category,
+        related_name='products',
         verbose_name="Danh mục"
     )
 
@@ -52,7 +70,7 @@ class Product(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"[{self.get_category_display()}] {self.name} - {self.price}đ"
+        return f"[{self.category.name if self.category else 'Chưa phân loại'}] {self.name} - {self.price}đ"
 
 
 class SiteConfig(models.Model):

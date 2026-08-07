@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -8,13 +8,22 @@ import CartModal from '@/components/CartModal';
 import AuthModal from '@/components/AuthModal';
 import UserProfileModal from '@/components/UserProfileModal';
 import Toast from '@/components/Toast';
-import CATEGORIES from '@/config/categories';
 import { API_URL } from '@/config/api';
 import './globals.css';
 
 export default function RootLayout({ children }) {
   const pathname = usePathname();
   const isAdminPage = pathname?.startsWith('/admin');
+
+  // Lấy danh sách category từ API (loại trừ "Chưa phân loại")
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_URL}categories/`)
+      .then((res) => res.json())
+      .then((data) => setCategories(data))
+      .catch(() => setCategories([]));
+  }, []);
 
   // Ghi nhận lượt truy cập khi đổi trang (trừ trang admin)
   useEffect(() => {
@@ -36,7 +45,7 @@ export default function RootLayout({ children }) {
     <html lang="vi">
       <body className="bg-gray-50 min-h-screen text-gray-900 flex flex-col">
         {/* Ẩn Header/Footer shop khi ở trang quản trị */}
-        {!isAdminPage && <Header categories={CATEGORIES} />}
+        {!isAdminPage && <Header categories={categories} />}
 
         {/* Nội dung trang */}
         <main className="flex-1">

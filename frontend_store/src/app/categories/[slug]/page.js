@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/config/api';
 import { useAppStore } from '@/store/useAppStore';
-import { getCategoryName } from '@/config/categories';
+import { getCategoryIcon } from '@/config/categoryIcons';
 
 export default function CategoryPage({ params }) {
   const router = useRouter();
@@ -15,10 +15,20 @@ export default function CategoryPage({ params }) {
   const { searchQuery, addToCart: addToStoreCart, showToast, setSelectedCategory, setSearchQuery } = useAppStore();
 
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addedProductId, setAddedProductId] = useState(null);
 
-  const categoryName = getCategoryName(slug);
+  // Lấy danh sách category từ API để tìm tên hiển thị
+  useEffect(() => {
+    fetch(`${API_URL}categories/`)
+      .then((res) => res.json())
+      .then((data) => setCategories(data))
+      .catch(() => setCategories([]));
+  }, []);
+
+  const category = categories.find((c) => c.slug === slug);
+  const categoryName = category ? category.name : slug;
 
   // Cập nhật store để Header dropdown hiển thị đúng danh mục
   useEffect(() => {
@@ -65,7 +75,8 @@ export default function CategoryPage({ params }) {
         <span className="text-gray-800 font-medium">{categoryName}</span>
       </nav>
 
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">
+      <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+        <span>{getCategoryIcon(slug)}</span>
         Danh mục: {categoryName}
       </h2>
 

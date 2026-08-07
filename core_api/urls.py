@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
-    ProductViewSet, OrderViewSet, ReviewViewSet, get_footer, register, me,
+    ProductViewSet, OrderViewSet, ReviewViewSet, get_footer, get_categories, register, me,
     ApproveTokenObtainPairView, track_visit, admin_users, admin_approve_user, admin_analytics,
 )
 
@@ -13,6 +13,7 @@ router.register(r'reviews', ReviewViewSet, basename='review')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('categories/', get_categories, name='get-categories'),
     path('footer/', get_footer, name='get-footer'),
     # --- AUTH (JWT) ---
     path('auth/register/', register, name='auth-register'),

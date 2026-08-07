@@ -8,8 +8,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.models import User
-from .models import Product, Order, Footer, UserProfile, Review, PageVisit
-from .serializers import ProductSerializer, OrderSerializer, FooterSerializer, RegisterSerializer, UserSerializer, ReviewSerializer, PageVisitSerializer
+from .models import Product, Order, Footer, UserProfile, Review, PageVisit, Category
+from .serializers import ProductSerializer, OrderSerializer, FooterSerializer, RegisterSerializer, UserSerializer, ReviewSerializer, PageVisitSerializer, CategorySerializer
 from decimal import Decimal
 from django.db.models import Q, Sum, Count
 from django.utils import timezone
@@ -25,11 +25,11 @@ class ProductViewSet(viewsets.ModelViewSet):
         return [AllowAny()]
 
     def get_queryset(self):
-        #lọc theo danh mục
+        #lọc theo danh mục (category giờ là FK, lọc theo slug)
         queryset = Product.objects.all().order_by('-created_at')
         category = self.request.query_params.get('category', None)
         if category:
-            queryset = queryset.filter(category=category)
+            queryset = queryset.filter(category__slug=category)
         
         #lọc theo tìm kiếm không dấu
         search_query = self.request.query_params.get('search', None)
@@ -44,6 +44,13 @@ class ProductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_active=True)
 
         return queryset
+
+@api_view(['GET'])
+def get_categories(request):
+    """API public trả danh sách category — loại trừ 'Chưa phân loại' (vô nghĩa với khách & admin)"""
+    categories = Category.objects.exclude(slug='chua-phan-loai').order_by('name')
+    serializer = CategorySerializer(categories, many=True)
+    return Response(serializer.data)
 
 @api_view(['GET'])
 def get_footer(request):

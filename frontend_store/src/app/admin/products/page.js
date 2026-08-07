@@ -5,13 +5,6 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import { useAppStore } from '@/store/useAppStore';
 import { API_URL } from '@/config/api';
 
-const CATEGORIES = [
-  { value: 'thoi-trang', label: 'Thời trang' },
-  { value: 'dien-tu', label: 'Điện tử' },
-  { value: 'gia-dung', label: 'Gia dụng' },
-  { value: 'sach-truyen', label: 'Sách & Truyện' },
-];
-
 const EMPTY_FORM = {
   name: '',
   category: 'thoi-trang',
@@ -47,11 +40,20 @@ const getFileName = (url) => {
 export default function AdminProducts() {
   const { authFetch, showToast } = useAppStore();
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+
+  // Lấy danh sách category từ API (loại trừ "Chưa phân loại" — admin không cần gán)
+  useEffect(() => {
+    fetch(`${API_URL}categories/`)
+      .then((res) => res.json())
+      .then((data) => setCategories(data))
+      .catch(() => setCategories([]));
+  }, []);
 
   const fetchProducts = async () => {
     try {
@@ -292,8 +294,8 @@ export default function AdminProducts() {
                     onChange={handleChange}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                   >
-                    {CATEGORIES.map((c) => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
+                    {categories.map((c) => (
+                      <option key={c.slug} value={c.slug}>{c.name}</option>
                     ))}
                   </select>
                 </div>

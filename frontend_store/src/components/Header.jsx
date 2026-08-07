@@ -123,13 +123,15 @@ export default function Header({ categories = [] }) {
             onChange={handleCategoryChange}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-blue-500 text-gray-700"
           >
-            {categories
-              .filter((cat) => !(pathname.startsWith('/categories/') && cat.slug === ''))
-              .map((cat) => (
-                <option key={cat.slug || cat.id || cat} value={cat.slug || cat}>
-                  {cat.name || cat}
-                </option>
-              ))}
+            {/* "Tất cả danh mục" là lựa chọn UI (bỏ filter), không phải category thật từ API */}
+            {!(pathname.startsWith('/categories/')) && (
+              <option value="">Tất cả danh mục</option>
+            )}
+            {categories.map((cat) => (
+              <option key={cat.slug} value={cat.slug}>
+                {cat.name}
+              </option>
+            ))}
           </select>
 
           <div className="relative flex-1">

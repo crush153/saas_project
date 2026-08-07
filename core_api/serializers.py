@@ -1,11 +1,18 @@
 import re
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Product, Order, Footer, UserProfile, Review, PageVisit
+from .models import Product, Order, Footer, UserProfile, Review, PageVisit, Category
 import json
 
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'slug']
+
 class ProductSerializer(serializers.ModelSerializer):
-    category_display = serializers.CharField(source='get_category_display', read_only=True)
+    # Frontend gửi category dưới dạng slug (vd 'thoi-trang'), không phải id
+    category = serializers.SlugRelatedField(slug_field='slug', queryset=Category.objects.all())
+    category_display = serializers.CharField(source='category.name', read_only=True)
 
     class Meta:
         model = Product

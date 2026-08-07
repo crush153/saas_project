@@ -5,15 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/config/api';
 import { useAppStore } from '@/store/useAppStore';
-import { getCategoryList } from '@/config/categories';
-
-// Icon mapping cho mỗi danh mục
-const categoryIcons = {
-  'thoi-trang': '👕',
-  'dien-tu': '💻',
-  'gia-dung': '🏠',
-  'sach-truyen': '📚',
-};
+import { getCategoryIcon } from '@/config/categoryIcons';
 
 export default function Home() {
   const router = useRouter();
@@ -21,6 +13,7 @@ export default function Home() {
   const { searchQuery, selectedCategory, addToCart: addToStoreCart, showToast, setSelectedCategory, setSearchQuery } = useAppStore();
 
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
   //state hiệu ứng thêm vào giỏ hàng
@@ -45,6 +38,14 @@ export default function Home() {
     return () => window.removeEventListener('pageshow', handlePageShow);
   }, [selectedCategory, setSelectedCategory]);
 
+
+  // Lấy danh sách category từ API (loại trừ "Chưa phân loại")
+  useEffect(() => {
+    fetch(`${API_URL}categories/`)
+      .then((res) => res.json())
+      .then((data) => setCategories(data))
+      .catch(() => setCategories([]));
+  }, []);
 
   // 2. Effect chính xử lý Fetch dữ liệu
   useEffect(() => {
@@ -105,8 +106,6 @@ export default function Home() {
     showToast(`${product.name} đã được thêm vào giỏ hàng!`);
   };
 
-  const categories = getCategoryList();
-
   return (
     <>
       <main className="max-w-6xl mx-auto p-6">
@@ -123,7 +122,7 @@ export default function Home() {
               >
                 <div className="p-6 flex flex-col items-center gap-3">
                   <span className="text-5xl transition-transform duration-300 group-hover:scale-110">
-                    {categoryIcons[cat.slug] || '📦'}
+                    {getCategoryIcon(cat.slug)}
                   </span>
                   <span className="text-white font-semibold text-sm text-center">
                     {cat.name}
