@@ -336,7 +336,7 @@ export default function AdminProducts() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Mã sản phẩm (SKU) * <span className="text-gray-400 font-normal">— để phân biệt các biến thể giống nhau</span>
+                  Mã sản phẩm (SKU) * <span className="text-gray-400 font-normal"></span>
                 </label>
                 <input
                   type="text"
@@ -344,7 +344,6 @@ export default function AdminProducts() {
                   value={form.sku}
                   onChange={handleChange}
                   required
-                  placeholder="Ví dụ: ĐT-IP15-128-Đen"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
@@ -450,7 +449,7 @@ export default function AdminProducts() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả (hỗ trợ Markdown)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
                 <textarea
                   name="description"
                   value={form.description}
@@ -462,14 +461,13 @@ export default function AdminProducts() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Thông số kỹ thuật (mỗi dòng: key: value)
+                  Thông số kỹ thuật
                 </label>
                 <textarea
                   name="specifications"
                   value={form.specifications}
                   onChange={handleChange}
-                  rows={3}
-                  placeholder="Ví dụ:&#10;Dung tích: 500 lít&#10;Màu sắc: Trắng"
+                  rows={5}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
