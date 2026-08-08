@@ -4,6 +4,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     ProductViewSet, OrderViewSet, ReviewViewSet, get_footer, get_categories, register, me,
     ApproveTokenObtainPairView, track_visit, admin_users, admin_approve_user, admin_analytics,
+    admin_footer_info,
 )
 
 router = DefaultRouter()
@@ -25,4 +26,5 @@ urlpatterns = [
     path('admin/users/', admin_users, name='admin-users'),
     path('admin/users/<int:user_id>/approve/', admin_approve_user, name='admin-approve-user'),
     path('admin/analytics/', admin_analytics, name='admin-analytics'),
+    path('admin/footer-info/', admin_footer_info, name='admin-footer-info'),
 ]

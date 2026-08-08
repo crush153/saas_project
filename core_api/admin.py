@@ -115,16 +115,12 @@ class FooterAdmin(admin.ModelAdmin):
             'fields': ('about_us', 'address', 'phone', 'email', 'working_hours', 'logo')
         }),
         ('Mạng xã hội', {
-            'fields': ('social_links',),
-            'description': 'Định dạng JSON: [{"name": "Facebook", "url": "https://...", "icon": "facebook"}]'
+            'fields': ('facebook_url', 'youtube_url', 'zalo_url', 'tiktok_url', 'instagram_url'),
+            'description': 'Nhập đường dẫn URL cho từng mạng xã hội. Để trống nếu không muốn hiển thị.'
         }),
-        ('Đối tác', {
-            'fields': ('partners',),
-            'description': 'Định dạng JSON: [{"name": "Đối tác A", "logo": "logo_a.jpg"}]'
-        }),
-        ('Liên kết Footer', {
-            'fields': ('footer_links',),
-            'description': 'Định dạng JSON: [{"title": "Chính sách bảo hành", "url": "/chinh-sach-bao-hanh"}]'
+        ('Nội dung chính sách', {
+            'fields': ('intro_content', 'warranty_content', 'return_content', 'shipping_content', 'privacy_content', 'contact_content'),
+            'description': 'Nội dung hiển thị trong modal khi khách click vào từng mục ở footer.'
         }),
         ('Bản quyền', {
             'fields': ('copyright_text',)

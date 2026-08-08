@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: '/admin/visits', label: 'Lượt truy cập', icon: '👁️' },
   { href: '/admin/users', label: 'Người dùng', icon: '👥' },
   { href: '/admin/reviews', label: 'Đánh giá', icon: '⭐' },
+  { href: '/admin/info', label: 'Thông tin', icon: 'ℹ️' },
 ];
 
 export default function AdminLayout({ children }) {

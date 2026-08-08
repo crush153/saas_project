@@ -87,7 +87,7 @@ export default function AuthModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl relative animate-in fade-in zoom-in duration-200">
+      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
         
         {/* Nút đóng Modal */}
         <button 
@@ -130,7 +130,7 @@ export default function AuthModal() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập</label>
             <input
@@ -145,38 +145,40 @@ export default function AuthModal() {
 
           {mode === 'register' && (
             <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                  placeholder="Nhập email (tùy chọn)"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    placeholder="Email (tùy chọn)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, '').slice(0, 10))}
+                    required
+                    inputMode="numeric"
+                    pattern="\d{10}"
+                    maxLength={10}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    placeholder="10 chữ số"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, '').slice(0, 10))}
-                  required
-                  inputMode="numeric"
-                  pattern="\d{10}"
-                  maxLength={10}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                  placeholder="Nhập 10 chữ số"
-                />
-                <p className="text-xs text-gray-400 mt-1">Số điện thoại gồm đúng 10 chữ số, không chứa ký tự khác.</p>
-              </div>
+              <p className="text-xs text-gray-400 -mt-1">Số điện thoại gồm đúng 10 chữ số, không chứa ký tự khác.</p>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ giao hàng</label>
                 <textarea
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   required
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-16 focus:outline-none focus:border-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-12 focus:outline-none focus:border-blue-500"
                   placeholder="Nhập địa chỉ nhận hàng"
                 />
               </div>
@@ -224,7 +226,7 @@ export default function AuthModal() {
           )}
 
           <button
-            type="submit"tải
+            type="submit"
             disabled={isLoading}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition cursor-pointer"
           >

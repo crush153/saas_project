@@ -101,14 +101,20 @@ class Footer(models.Model):
     email = models.EmailField(blank=True, verbose_name="Email")
     working_hours = models.CharField(max_length=200, blank=True, verbose_name="Giờ làm việc")
 
-    # Mạng xã hội: [{"name": "Facebook", "url": "https://...", "icon": "facebook"}]
-    social_links = models.JSONField(default=list, blank=True, verbose_name="Mạng xã hội")
+    # Mạng xã hội — 5 trường URL riêng biệt
+    facebook_url = models.URLField(blank=True, verbose_name="Facebook")
+    youtube_url = models.URLField(blank=True, verbose_name="YouTube")
+    zalo_url = models.URLField(blank=True, verbose_name="Zalo")
+    tiktok_url = models.URLField(blank=True, verbose_name="TikTok")
+    instagram_url = models.URLField(blank=True, verbose_name="Instagram")
 
-    # Đối tác: [{"name": "Đối tác A", "logo": "uploaded_logo.jpg"}]
-    partners = models.JSONField(default=list, blank=True, verbose_name="Đối tác")
-
-    # Liên kết footer: [{"title": "Chính sách bảo hành", "url": "/chinh-sach-bao-hanh"}]
-    footer_links = models.JSONField(default=list, blank=True, verbose_name="Liên kết footer")
+    # Nội dung các trang chính sách — mở modal khi click footer
+    intro_content = models.TextField(blank=True, verbose_name="Nội dung Giới thiệu")
+    warranty_content = models.TextField(blank=True, verbose_name="Nội dung Chính sách bảo hành")
+    return_content = models.TextField(blank=True, verbose_name="Nội dung Chính sách đổi trả")
+    shipping_content = models.TextField(blank=True, verbose_name="Nội dung Chính sách vận chuyển")
+    privacy_content = models.TextField(blank=True, verbose_name="Nội dung Chính sách bảo mật")
+    contact_content = models.TextField(blank=True, verbose_name="Nội dung Liên hệ")
 
     copyright_text = models.CharField(max_length=500, blank=True, verbose_name="Copyright")
 

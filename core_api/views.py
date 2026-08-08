@@ -322,6 +322,31 @@ def admin_approve_user(request, user_id):
     return Response({'error': 'action không hợp lệ.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAdminUser])
+def admin_footer_info(request):
+    """Lấy / cập nhật thông tin footer (admin) — không quản lý trường Trạng thái qua API này"""
+    footer = Footer.objects.first()
+    if not footer:
+        footer = Footer.objects.create()
+
+    if request.method == 'PUT':
+        # Chỉ cập nhật các trường thông tin (không bao gồm is_active)
+        editable_fields = [
+            'about_us', 'address', 'phone', 'email', 'working_hours',
+            'facebook_url', 'youtube_url', 'zalo_url', 'tiktok_url', 'instagram_url',
+            'intro_content', 'warranty_content', 'return_content', 'shipping_content', 'privacy_content', 'contact_content',
+            'copyright_text', 'logo',
+        ]
+        for field in editable_fields:
+            if field in request.data:
+                setattr(footer, field, request.data[field])
+        footer.save()
+        return Response(FooterSerializer(footer).data)
+
+    return Response(FooterSerializer(footer).data)
+
+
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def admin_analytics(request):

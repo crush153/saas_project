@@ -300,7 +300,7 @@ export default function AdminProducts() {
                           onClick={() => openEdit(p)}
                           className="text-blue-600 hover:text-blue-800 text-xs font-semibold cursor-pointer"
                         >
-                          Sửa
+                          Chi tiết
                         </button>
                         <button
                           onClick={() => handleDelete(p.id)}
