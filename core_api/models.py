@@ -9,8 +9,8 @@ class Category(models.Model):
     slug = models.SlugField(max_length=100, unique=True, verbose_name="Slug (dùng cho URL)")
 
     class Meta:
-        verbose_name = "Danh mục"
-        verbose_name_plural = "Danh mục"
+        verbose_name = "Category"
+        verbose_name_plural = "Category"
         ordering = ['name']
 
     def __str__(self):

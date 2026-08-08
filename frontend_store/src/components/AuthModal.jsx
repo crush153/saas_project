@@ -4,17 +4,20 @@ import { useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 
 export default function AuthModal() {
-  const { isAuthModalOpen, setIsAuthModalOpen, login, register, isAuthLoading, showToast } = useAppStore();
+  const { isAuthModalOpen, setIsAuthModalOpen, login, register, showToast } = useAppStore();
 
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState(''); // Thêm state cho địa chỉ
+  const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  
+  // Tự quản lý trạng thái loading riêng tại component để tránh bị kẹt
+  const [isLoading, setIsLoading] = useState(false);
 
   if (!isAuthModalOpen) return null;
 
@@ -27,6 +30,7 @@ export default function AuthModal() {
     setConfirmPassword('');
     setError('');
     setSuccessMessage('');
+    setIsLoading(false);
   };
 
   const switchMode = (newMode) => {
@@ -43,35 +47,42 @@ export default function AuthModal() {
     e.preventDefault();
     setError('');
     setSuccessMessage('');
+    setIsLoading(true); // Bật trạng thái đang xử lý
 
-    if (mode === 'register') {
-      if (password !== confirmPassword) {
-        setError('Mật khẩu xác nhận không khớp.');
+    try {
+      if (mode === 'register') {
+        if (password !== confirmPassword) {
+          setError('Mật khẩu xác nhận không khớp.');
+          return;
+        }
+        if (!/^\d{10}$/.test(phone)) {
+          setError('Số điện thoại phải gồm đúng 10 chữ số, không chứa ký tự khác.');
+          return;
+        }
+        const result = await register(username, email, password, phone, address);
+        if (!result.ok) {
+          setError(result.message);
+          return;
+        }
+        setSuccessMessage(result.message);
         return;
       }
-      // Kiểm tra số điện thoại: đúng 10 chữ số, không ký tự khác
-      if (!/^\d{10}$/.test(phone)) {
-        setError('Số điện thoại phải gồm đúng 10 chữ số, không chứa ký tự khác.');
-        return;
-      }
-      const result = await register(username, email, password, phone, address);
+
+      // mode === 'login'
+      const result = await login(username, password);
       if (!result.ok) {
-        setError(result.message);
+        // Sử dụng thông báo lỗi tùy chỉnh nếu muốn
+        setError('Tên đăng nhập hoặc mật khẩu không đúng.');
         return;
       }
-      // Đăng ký thành công nhưng chưa được duyệt — hiển thị thông báo, không đóng modal
-      setSuccessMessage(result.message);
-      return;
+      showToast('Đăng nhập thành công!');
+      handleClose();
+    } catch (err) {
+      setError('Đã có lỗi xảy ra, vui lòng thử lại.');
+    } finally {
+      // LUÔN LUÔN tắt trạng thái loading dù thành công hay thất bại
+      setIsLoading(false);
     }
-
-    // mode === 'login'
-    const result = await login(username, password);
-    if (!result.ok) {
-      setError(result.message);
-      return;
-    }
-    showToast('Đăng nhập thành công!');
-    handleClose();
   };
 
   return (
@@ -213,11 +224,11 @@ export default function AuthModal() {
           )}
 
           <button
-            type="submit"
-            disabled={isAuthLoading}
+            type="submit"tải
+            disabled={isLoading}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition cursor-pointer"
           >
-            {isAuthLoading
+            {isLoading
               ? 'Đang xử lý...'
               : mode === 'login' ? 'Đăng nhập' : 'Đăng ký'}
           </button>

@@ -8,7 +8,7 @@ import { API_URL } from '@/config/api';
 const EMPTY_FORM = {
   name: '',
   sku: '',
-  category: 'thoi-trang',
+  category: '',
   price: '',
   stock: 0,
   is_active: true,
@@ -50,7 +50,7 @@ export default function AdminProducts() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
 
-  // Lấy danh sách category từ API (loại trừ "Chưa phân loại" — admin không cần gán)
+  // Lấy danh sách category từ API
   useEffect(() => {
     fetch(`${API_URL}categories/`)
       .then((res) => res.json())
@@ -71,6 +71,7 @@ export default function AdminProducts() {
     }
   };
 
+  // Tải danh sách sản phẩm khi vào trang
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -117,12 +118,19 @@ export default function AdminProducts() {
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-    // Xử lý các field ảnh (image, image2..image5)
+
     if (['image', 'image2', 'image3', 'image4', 'image5'].includes(name)) {
-      setForm({ ...form, [name]: files[0] || null });
-    } else {
-      setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
+      setForm((prev) => ({
+        ...prev,
+        [name]: files?.[0] || null,
+      }));
+      return;
     }
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
   const handleRemoveImage = (name) => {
@@ -351,16 +359,20 @@ export default function AdminProducts() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Danh mục</label>
-                  <select
-                    name="category"
-                    value={form.category}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                  >
-                    {categories.map((c) => (
-                      <option key={c.slug} value={c.slug}>{c.name}</option>
-                    ))}
-                  </select>
+                    <select
+                      name="category"
+                      value={form.category || ''}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">-- Chọn danh mục --</option>
+
+                      {categories.map((c) => (
+                        <option key={c.slug} value={c.slug}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Giá (đ) *</label>
